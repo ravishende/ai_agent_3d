@@ -78,14 +78,28 @@ def draw_colored_cube_with_outline(color, size=1.0):
     # outline - slightly larger to avoid z-fighting
     draw_cube_outline(outline_size)
 
+def grid_to_world(row_index, col_index, cube_size, num_rows=3):
+    """
+    Logical grid coord -> world-space (y, z).
+    Player coordinate (1,2) means:
+        row_index = 1 --> 2nd row from top
+        col_index = 2 --> 3rd row from left
+    Returns:
+        y_position, z_position: resulting y and z position of cube
+    """
+    y = (num_rows - 1 - row_index) * cube_size
+    z = col_index * cube_size
+    return y, z
 
 # ------------------ Lane rendering ------------------
 
-def draw_lane_from_slices(slices, cube_size=1.0, spacing=1.0):
+def draw_lane_from_slices(slices, cube_size=1.0, spacing=1.0, num_rows=3):
     """
-    slices: list of 3x3 numpy arrays with 0/1 values.
+    slices: list of 3xN numpy arrays with 0/1 values.
     Each array is a cross-section in the Y-Z plane.
     The list index is the X position along the lane.
+    
+    Given a 3xN array, array[0][0] is placed so its cube center is at y=0, z=0
     """
     if not slices:
         return
@@ -94,17 +108,15 @@ def draw_lane_from_slices(slices, cube_size=1.0, spacing=1.0):
 
     step = cube_size + spacing
     x_offset = 0.0
-    y_offset = - (rows - 1) * cube_size / 2.0
-    z_offset = - (cols - 1) * cube_size / 2.0
 
     for i, grid in enumerate(slices):
         x = x_offset + i * step
 
-        for r in range(rows):
-            for c in range(cols):
-                if grid[r, c] == 1:
-                    y = y_offset + (rows - 1 - r) * cube_size
-                    z = z_offset + c * cube_size
+        for row in range(rows):
+            for col in range(cols):
+                if grid[row, col] == 1:
+                    y = (num_rows - 1 - row) * cube_size
+                    z = col * cube_size
 
                     glPushMatrix()
                     glTranslatef(x, y, z)
@@ -113,9 +125,10 @@ def draw_lane_from_slices(slices, cube_size=1.0, spacing=1.0):
                     draw_colored_cube_with_outline(color, cube_size)
                     glPopMatrix()
 
+
 # ------------------ OpenGL / Pygame setup ------------------
 
-def init_pygame_opengl(num_slices, width=800, height=600, cube_size=1.0):
+def init_pygame_opengl(width=800, height=600, cube_size=1.0):
     pygame.init()
 
     pygame.display.gl_set_attribute(pygame.GL_MULTISAMPLEBUFFERS, 1)
@@ -146,7 +159,6 @@ def main():
     spacing = 40.0  # how far apart slices are
 
     init_pygame_opengl(
-        num_slices=len(slices),
         width=800,
         height=600,
         cube_size=cube_size)
@@ -163,7 +175,7 @@ def main():
     speed = 25
     # when lane passes this, jump it back to beginning
     reset_distance = 0
-
+    player_pos = (1,1)
     while running:
         fps = 120
         dt_ms = clock.tick(fps) # ms since last frame
@@ -187,6 +199,8 @@ def main():
         glPushMatrix()
         player_color = (0.9, 0.2, 0.2)  # reddish color
         # top cube: top half of player
+        player_y, player_z = grid_to_world(player_pos[0], player_pos[1], cube_size)
+        glTranslatef(0.0, player_y, player_z)
         draw_colored_cube_with_outline(player_color, cube_size)
         # bottom cube: bottom half of player
         glTranslatef(0.0, -cube_size, 0.0)
