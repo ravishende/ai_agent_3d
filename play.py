@@ -41,7 +41,7 @@ def INIT_GAME(game_map: list[np.ndarray]) -> None:
     global GAME_MAP
     GAME_MAP = game_map
 
-def NEXT_GRID(drop:bool=True) -> list[np.ndarray] | None:
+def NEXT_GRID(drop:bool=True) -> np.ndarray | None:
     """Get the next grid in the gameboard, and (optionally) remove it from the remaining map"""
     assert GAME_MAP is not None, "Game map has not been initialized. Call INIT_GAME first."
     if len(GAME_MAP) == 0:
@@ -73,7 +73,7 @@ def str_to_action(move:str):
     return actions[move]
 
 class Action(Enum):
-    # actions defined as (delta row, delta col) of grid
+    """actions defined as (delta row, delta col) of grid"""
     LEFT = (0,-1)
     RIGHT = (0,1)
     JUMP = (-1,0)
