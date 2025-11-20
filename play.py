@@ -111,7 +111,19 @@ class State:
             return reward, None
         return reward, State(new_grids, new_location)
 
-    def get_reward(self, action:Action) -> int:
+    def get_reward(self, action: Action) -> int:
+        """
+        Given an action in the current state, return the resulting reward (0, 1).
+        This is the simple version of the reward function where it does not take into account future viability.
+        """
+        new_location = self._update_location(self.player_location, action)
+        # action results in immediate death --> no reward
+        if self._collides(new_location, self.grids[0]):
+            return 0
+        # no death --> reward = 1
+        return 1
+
+    def _get_reward_complex(self, action:Action) -> int:
         """
         Given an action in the current state, return the resulting reward (0, 1, or 2).
         Note: this currently only works assuming there are exactly 2 grids per state
