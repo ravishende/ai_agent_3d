@@ -11,17 +11,16 @@ def main():
     game_map = map2
     INIT_GAME(game_map)
 
-    grid = game_map[0]
-    state = State(grid, START_LOCATION)
+    grids = [game_map[0], game_map[1]]
+    state = State(grids, START_LOCATION)
 
     total_reward = 0
     total_moves = 0
-    while state.grid is not None:
+    while state is not None:
         print("\n\n")
         # print map
-        newest_n_grids = VIEW_GRIDS(current_grid=state.grid, n_grids=2)[::-1]
-        for i, grid in enumerate(newest_n_grids):
-            print(f"{len(newest_n_grids) - i})\n{grid}\n")
+        for i, grid in enumerate(state.grids[::-1]):
+            print(f"{len(grids) - i})\n{grid}\n")
         # print player
         for _ in range(2):
             print(" "*2 + " "*2*state.player_location[1] + "*")
@@ -51,25 +50,12 @@ def NEXT_GRID(drop:bool=True) -> np.ndarray | None:
         return GAME_MAP.pop(0)
     return GAME_MAP[0]
 
-def VIEW_GRIDS(current_grid:np.ndarray | None = None, n_grids:int = 2):
-    grids = []
-    if current_grid is None:
-        # get n new grids
-        grids = [NEXT_GRID(drop=False) for _ in range(n_grids)]
-    else:
-        # get current grid and n-1 bew grids
-        grids = [current_grid] + [NEXT_GRID(drop=False) for _ in range(n_grids-1)]
-    # drop any empty grids
-    while(grids[-1] is None):
-        grids = grids[:-1]
-    return grids
-
 def game_over(total_reward:int, total_moves:int):
     print("\n")
     print("="*50)
     print(" "*15, "Game Over!")
     print("="*50)
-    print("Total Reward:", total_reward)
+    print("Total Rewards:", total_reward)
     print("Total Moves:", total_moves, "\n\n")
 
 def str_to_action(move:str):
@@ -96,11 +82,11 @@ class Action(Enum):
 
 
 class State:
-    def __init__(self, grid:np.ndarray, player_location:tuple[int,int]):
-        self.grid:np.ndarray = grid
+    def __init__(self, grids:list[np.ndarray], player_location:tuple[int,int]):
+        self.grids:list[np.ndarray] = grids
         self.player_location:tuple[int,int] = player_location
 
-    def move(self, action:Action) -> tuple[int, Self]:
+    def move(self, action:Action) -> tuple[int, Self | None]:
         """
         Take a given action and return the resulting reward and new state
         The new location is what is set up to take the next action.
@@ -118,9 +104,12 @@ class State:
         if reward == 0:
             # Collision --> no next state (game over)
             print("\n\nCrash!")
-            return reward, State(None, new_location)
-        new_grid = NEXT_GRID(drop=True)
-        return reward, State(new_grid, new_location)
+            return reward, None
+        new_grids = [self.grids[1], NEXT_GRID(drop=True)]
+        # handle last state
+        if new_grids is None or all(grid is None for grid in new_grids):
+            return reward, None
+        return reward, State(new_grids, new_location)
 
     def get_reward(self, action: Action) -> int:
         """
@@ -129,10 +118,33 @@ class State:
         """
         new_location = self._update_location(self.player_location, action)
         # action results in immediate death --> no reward
-        if self._collides(new_location, self.grid):
+        if self._collides(new_location, self.grids[0]):
             return 0
         # no death --> reward = 1
         return 1
+
+    def _get_reward_complex(self, action:Action) -> int:
+        """
+        Given an action in the current state, return the resulting reward (0, 1, or 2).
+        Note: this currently only works assuming there are exactly 2 grids per state
+        """
+        new_location = self._update_location(self.player_location, action)
+        # action results in immediate death --> no reward
+        if self._collides(new_location, self.grids[0]):
+            return 0
+        # at least one state survivable
+        total_reward = 1
+        current_location = new_location
+        # handle final grid of map
+        if self.grids[1] is None:
+            return total_reward
+        
+        for move in list(Action):
+            new_location = self._update_location(current_location, move)
+            # action results in survival --> return 2
+            if not self._collides(new_location, self.grids[1]):
+                return total_reward + 1
+        return total_reward
 
     def _update_location(self, player_location:tuple[int,int], action:Action):
         """
@@ -162,7 +174,7 @@ class State:
         return False
     
     def __str__(self):
-        return "="*50 + f"Location: {self.player_location}\nGrid:\n{self.grid}\n" + "="*50
+        return "="*50 + f"Location: {self.player_location}\nGrids:\n{self.grids}\n" + "="*50
     
 if __name__ == "__main__":
     main()
