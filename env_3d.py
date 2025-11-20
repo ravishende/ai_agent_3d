@@ -1,3 +1,10 @@
+"""
+Visualizes a map and player.
+Player lives at X=0, fixed relative to camera, while map moves towards them (decreasing x)
+Player can move in the Y and Z axis for actions of LEFT/RIGHT and JUMP/DUCK
+"""
+
+
 import math
 import pygame
 from pygame.locals import DOUBLEBUF, OPENGL, QUIT
@@ -49,9 +56,10 @@ def draw_cube_outline(size=1.0):
             glVertex3f(vx * size, vy * size, vz * size)
     glEnd()
 
-def draw_colored_cube_with_outline(color, size=1.0):
-    """Draw a solid-colored cube with a black outline."""
-    # solid faces
+def draw_cube(color, size=1.0):
+    """Draw a solid-colored cube with no outline."""
+    glEnable(GL_POLYGON_OFFSET_FILL)
+    glPolygonOffset(1.0, 1.0)
     glColor3f(*color)
     glBegin(GL_QUADS)
     for face in faces:
@@ -59,9 +67,15 @@ def draw_colored_cube_with_outline(color, size=1.0):
             vx, vy, vz = vertices[idx]
             glVertex3f(vx * size, vy * size, vz * size)
     glEnd()
+    glDisable(GL_POLYGON_OFFSET_FILL)
 
+def draw_colored_cube_with_outline(color, size=1.0):
+    """Draw a solid-colored cube with a black outline."""
+    solid_size = 0.98*size  # smaller than outline to avoid z-fighting
+    outline_size = size
+    # solid faces
+    draw_cube(color, solid_size)
     # outline - slightly larger to avoid z-fighting
-    outline_size = size * 1.01
     draw_cube_outline(outline_size)
 
 
@@ -76,11 +90,10 @@ def draw_lane_from_slices(slices, cube_size=1.0, spacing=1.0):
     if not slices:
         return
 
-    num_slices = len(slices)
     rows, cols = slices[0].shape
 
     step = cube_size + spacing
-    x_offset = - (num_slices - 1) * step / 2.0
+    x_offset = 0.0
     y_offset = - (rows - 1) * cube_size / 2.0
     z_offset = - (cols - 1) * cube_size / 2.0
 
@@ -102,32 +115,26 @@ def draw_lane_from_slices(slices, cube_size=1.0, spacing=1.0):
 
 # ------------------ OpenGL / Pygame setup ------------------
 
-def init_pygame_opengl(num_slices, width=800, height=600, cube_size=1.0, spacing=1.0):
+def init_pygame_opengl(num_slices, width=800, height=600, cube_size=1.0):
     pygame.init()
+
+    pygame.display.gl_set_attribute(pygame.GL_MULTISAMPLEBUFFERS, 1)
+    pygame.display.gl_set_attribute(pygame.GL_MULTISAMPLESAMPLES, 4)
     pygame.display.set_mode((width, height), DOUBLEBUF | OPENGL)
 
     glEnable(GL_DEPTH_TEST)
     glClearColor(0.05, 0.05, 0.05, 1.0)
     glDisable(GL_LIGHTING)
 
-    fov = 60.0
+    glEnable(GL_MULTISAMPLE)
+
+    fov = 40.0
     aspect = width / float(height)
-    gluPerspective(fov, aspect, 0.1, 2000.0)
-
-    # --- compute a reasonable camera distance based on cube size & lane length ---
-    lane_length = (num_slices - 1) * (cube_size + spacing) + cube_size
-    lane_height = 3 * cube_size  # since your cross-sections are 3 cubes tall
-
-    # max half-extent of the object (rough bounding sphere radius)
-    half_diag = 0.5 * math.sqrt(lane_length**2 + lane_height**2)
-    # distance so that this half-diagonal fits into the vertical FOV
-    distance = half_diag / math.tan(math.radians(fov / 2.0))
-    # add a bit of margin so it's not hugging the screen
-    distance += 2 * cube_size
-    # move the world away from the camera
-    glTranslatef(0.0, 0.0, -distance)
+    gluPerspective(fov, aspect, 0.1, 200.0)
+    # move the world away from the camera (equivalent to moving camera up and back)
+    glTranslatef(0.0, -2*cube_size, -30.0)
     # rotate the world to the correct orientation
-    glRotatef(5, 1, 0, 0)
+    glRotatef(10, 1, 0, 0)  # have the camera look down on the world
     glRotatef(90, 0, 1, 0)
 
 
@@ -136,42 +143,59 @@ def init_pygame_opengl(num_slices, width=800, height=600, cube_size=1.0, spacing
 def main():
     slices = map2  # game map
     cube_size = 2.0
-    spacing = 10.0  # how far apart slices are
+    spacing = 40.0  # how far apart slices are
 
     init_pygame_opengl(
         num_slices=len(slices),
         width=800,
         height=600,
-        cube_size=cube_size,
-        spacing=spacing)
+        cube_size=cube_size)
 
     running = True
     clock = pygame.time.Clock()
 
     # how far the lane starts toward the camera (in +X)
-    lane_x_offset = 10.0
+    lane_x_start = cube_size + spacing
+    # lane dimension and position
+    lane_length = len(slices) * (cube_size + spacing)
+    lane_x_position = lane_x_start
     # movement speed per frame
-    speed = 0.15
-    # when passed this, jump back to beginning
-    reset_distance = (cube_size + spacing)*len(slices) + 15*cube_size
+    speed = 25
+    # when lane passes this, jump it back to beginning
+    reset_distance = 0
 
     while running:
-        clock.tick(60)
+        fps = 120
+        dt_ms = clock.tick(fps) # ms since last frame
+        dt = dt_ms / 1000.0
+        fps = clock.get_fps()
+        print(f"FPS: {fps:.1f}", end='\r')
+
 
         for event in pygame.event.get():
             if event.type == QUIT:
                 running = False
 
         # move lane toward camera
-        lane_x_offset += speed
-        if lane_x_offset > reset_distance:
-            lane_x_offset = 0.0  # restart from back
+        lane_x_position -= speed * dt
+        if lane_x_position + lane_length < reset_distance:
+            lane_x_position = lane_x_start  # restart from back
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
+
+        glPushMatrix()
+        player_color = (0.9, 0.2, 0.2)  # reddish color
+        # top cube: top half of player
+        draw_colored_cube_with_outline(player_color, cube_size)
+        # bottom cube: bottom half of player
+        glTranslatef(0.0, -cube_size, 0.0)
+        draw_colored_cube_with_outline(player_color, cube_size)
+        glPopMatrix()
+
         glPushMatrix()
         # move entire lane along -X (toward camera)
-        glTranslatef(-lane_x_offset, 0.0, 0.0)
+        glTranslatef(lane_x_position, 0.0, 0.0)
         draw_lane_from_slices(slices, cube_size, spacing)
         glPopMatrix()
 
