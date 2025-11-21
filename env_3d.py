@@ -169,13 +169,15 @@ def main():
     # how far the lane starts toward the camera (in +X)
     lane_x_start = cube_size + spacing
     # lane dimension and position
-    lane_length = len(slices) * (cube_size + spacing)
+    step = cube_size + spacing
+    lane_length = len(slices) * step
     lane_x_position = lane_x_start
     # movement speed per frame
     speed = 25
     # when lane passes this, jump it back to beginning
     reset_distance = 0
-    player_pos = (1,1)
+    start_fixed_distance = 2*step / 3
+    player_locations = [(1, 2), (0, 2), (2, 2), (1, 1), (1, 1), (2, 1), (1, 1), (1, 2)]
     while running:
         fps = 120
         dt_ms = clock.tick(fps) # ms since last frame
@@ -193,17 +195,37 @@ def main():
         if lane_x_position + lane_length < reset_distance:
             lane_x_position = lane_x_start  # restart from back
 
+        distance_travelled = lane_x_start - lane_x_position
+        current_slice = int((distance_travelled - spacing/2) // step)
+        # don't go out of range of slices
+        current_slice = max(current_slice, 0)
+        current_slice = min(current_slice, len(slices)-1)
+
+        if distance_travelled < start_fixed_distance:
+            player_pos = (1,1)
+        else:
+            player_pos = player_locations[current_slice]
+
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
 
         glPushMatrix()
         player_color = (0.9, 0.2, 0.2)  # reddish color
-        # top cube: top half of player
+        # first cube: top half/torso of player
         player_y, player_z = grid_to_world(player_pos[0], player_pos[1], cube_size)
         glTranslatef(0.0, player_y, player_z)
         draw_colored_cube_with_outline(player_color, cube_size)
-        # bottom cube: bottom half of player
-        glTranslatef(0.0, -cube_size, 0.0)
+        # Second cube (bottom half of player) depends on posture:
+        # row == 1: standing vertically (feet below the torso)
+        if player_pos[0] == 1:
+            glTranslatef(0.0, -cube_size, 0.0)
+        # row == 0: diving horizontally (feet behind the torso)
+        elif player_pos[0] == 0:
+            glTranslatef(cube_size, 0.0, 0.0)
+        # row == 2: sliding horizontally (feet in front of the torso)
+        else:
+            glTranslatef(-cube_size, 0.0, 0.0)
+
         draw_colored_cube_with_outline(player_color, cube_size)
         glPopMatrix()
 
