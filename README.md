@@ -14,6 +14,10 @@ An agent that uses policy iteration to run through a 3d Temple Run / Subway Surf
 
 Project is still in progress.
 
-- To see the environment, run `python3 env_3d.py`
+- To be able to play through a text-based game and see it visualized, run `python3 play.py`
 
-- To be able to play through a text based environment, run `python3 play.py`
+  - You can specify which map to use with `--map`. E.g. `python3 play.py --map=3`
+
+- To just play the text game, run `python3 play_text.py`
+
+- To just see the environment, run `python3 env_3d.py`
