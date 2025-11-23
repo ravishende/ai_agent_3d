@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Self
 import numpy as np
 
 START_LOCATION = (1,1)
@@ -9,26 +8,21 @@ def INIT_GAME(game_map: list[np.ndarray]) -> None:
     global GAME_MAP
     GAME_MAP = game_map.copy()
 
-def NEXT_GRID(drop:bool=True) -> np.ndarray | None:
-    """Get the next grid in the gameboard, and (optionally) remove it from the remaining map"""
+def GRID_AT(t: int) -> np.ndarray | None:
+    """Get the grid at time index t or None if past the end of the game map."""
     assert GAME_MAP is not None, "Game map has not been initialized. Call INIT_GAME first."
-    if len(GAME_MAP) == 0:
-        return None
-    if drop:
-        return GAME_MAP.pop(0)
-    return GAME_MAP[0]
+    if 0 <= t < len(GAME_MAP):
+        return GAME_MAP[t]
+    return None
 
-def VIEW_GRIDS(current_grid:np.ndarray | None = None, n_grids:int = 2):
+def VIEW_GRIDS(t: int, n_grids:int = 2):
+    """View up to n future grids starting from time index t."""
     grids = []
-    if current_grid is None:
-        # get n new grids
-        grids = [NEXT_GRID(drop=False) for _ in range(n_grids)]
-    else:
-        # get current grid and n-1 bew grids
-        grids = [current_grid] + [NEXT_GRID(drop=False) for _ in range(n_grids-1)]
-    # drop any empty grids
-    while(grids[-1] is None):
-        grids = grids[:-1]
+    for offset in range(n_grids):
+        grid = GRID_AT(t+offset)
+        if grid is None:
+            break
+        grids.append(grid)
     return grids
 
 
@@ -43,20 +37,75 @@ class Action(Enum):
 
 class State:
     """A state contains a grid and the player's current location"""
-    def __init__(self, grid:np.ndarray, player_location:tuple[int,int]):
-        self.grid:np.ndarray = grid
-        self.player_location:tuple[int,int] = player_location
+    def __init__(self, time_index:int, player_location:tuple[int,int]):
+        self.time_index: int = time_index
+        self.player_location: tuple[int,int] = player_location
+        self.grid: np.ndarray | None = GRID_AT(time_index)
 
-    def move(self, action:Action) -> tuple[int, Self]:
+    def is_terminal(self) -> bool:
+        """Returns True if no more grids or the grid is None -> terminal state."""
+        return self.grid is None
+    
+    def preview(self, action:Action) -> tuple[int, "State"]:
         """
-        Take a given action and return the resulting reward and new state
-        The new location is what is set up to take the next action.
-        Ex: if current location is [1,0] and action is JUMP, then returned location is [1,0] not [0,0].
+        See the outcome (resulting reward, new state) of taking a given action.
+        The new state.player_location is what is set up to take the next action.
+        Ex: if current location is (1,0) and action is JUMP, then returned state's location is (1,0) not (0,0).
         Parameters:
             action: the action the player takes
         Returns:
             (reward, new_state): the reward and the next state the player is in
+        Note: currently `preview()` == `move()`, but in the future, `move()` may have side effects
         """
+        return self._transition(action)
+
+    def move(self, action:Action) -> tuple[int, "State"]:
+        """
+        Take a given action and return the resulting reward and new state
+        The new location is what is set up to take the next action.
+        Ex: if current location is (1,0) and action is JUMP, then returned state's location is (1,0) not (0,0).
+        Parameters:
+            action: the action the player takes
+        Returns:
+            (reward, new_state): the reward and the next state the player is in
+        Note: currently `preview()` == `move()`, but in the future, `move()` may have side effects
+        """
+        return self._transition(action)
+
+    def get_reward(self, action: Action) -> int:
+        """
+        Given an action in the current state, return the resulting reward (0, 1).
+        This is the simple version of the reward function where it does not take into account future viability.
+        """
+        assert self.grid is not None, "Cannnot perform more actions from a terminal state."
+
+        new_location = self._update_location(self.player_location, action)
+        # action results in immediate death --> no reward
+        if self._collides(new_location, self.grid):
+            return 0
+        # no death --> reward = 1
+        return 1
+    
+    def preview_sequence(self, actions: list[Action]) -> tuple[int, "State"]:
+        """
+        Preview reward and resulting state of multiple actions.
+        Returns (total_reward, final_state) without changing the real state.
+        """
+        total_reward = 0
+        state = self
+        for action in actions:
+            reward, state = state.move(action)
+            total_reward += reward
+            if state.is_terminal():
+                break
+        return total_reward, state
+    
+    def _transition(self, action:Action) -> tuple[int, "State"]:
+        """Return the resulting reward and new state from taking a given action"""
+        if self.is_terminal():
+            # already in a terminal state, no need to change state
+            return 0, self
+
         reward = self.get_reward(action)
         new_location = self._update_location(self.player_location, action)
         # after move has been done, player should no longer be jumping/ducking
@@ -65,21 +114,8 @@ class State:
         if reward == 0:
             # Collision --> no next state (game over)
             print("\n\nCrash!")
-            return reward, State(None, new_location)
-        new_grid = NEXT_GRID(drop=True)
-        return reward, State(new_grid, new_location)
-
-    def get_reward(self, action: Action) -> int:
-        """
-        Given an action in the current state, return the resulting reward (0, 1).
-        This is the simple version of the reward function where it does not take into account future viability.
-        """
-        new_location = self._update_location(self.player_location, action)
-        # action results in immediate death --> no reward
-        if self._collides(new_location, self.grid):
-            return 0
-        # no death --> reward = 1
-        return 1
+            return reward, State(-1, new_location)
+        return reward, State(self.time_index+1, new_location)
 
     def _update_location(self, player_location:tuple[int,int], action:Action):
         """
@@ -107,6 +143,6 @@ class State:
         if row == mid_row and grid[bot_row, col] == 1:
             return True
         return False
-    
+
     def __str__(self):
-        return "="*50 + f"\nLocation: {self.player_location}\nGrid:\n{self.grid}\n" + "="*50
+        return "="*50 + f"\nLocation: {self.player_location}\nGrid (t={self.time_index}):\n{self.grid}\n" + "="*50
