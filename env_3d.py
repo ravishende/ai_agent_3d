@@ -15,7 +15,7 @@ from play_text import START_LOCATION
 # ------------------ Cube geometry ------------------
 
 # vertices for centered 1-unit cube
-vertices = [
+VERTICES = [
     [-0.5, -0.5, -0.5],
     [ 0.5, -0.5, -0.5],
     [ 0.5,  0.5, -0.5],
@@ -27,7 +27,7 @@ vertices = [
 ]
 
 # faces defined as lists of vertex indices
-faces = [
+FACES = [
     (0, 1, 2, 3),  # back
     (4, 5, 6, 7),  # front
     (0, 1, 5, 4),  # bottom
@@ -37,7 +37,7 @@ faces = [
 ]
 
 # edges for outline of cubes
-edges = [
+EDGES = [
     (0, 1), (1, 2), (2, 3), (3, 0),
     (4, 5), (5, 6), (6, 7), (7, 4),
     (0, 4), (1, 5), (2, 6), (3, 7)
@@ -49,9 +49,9 @@ def _draw_cube_outline(size=1.0):
     glLineWidth(2.0)
 
     glBegin(GL_LINES)
-    for e in edges:
+    for e in EDGES:
         for idx in e:
-            vx, vy, vz = vertices[idx]
+            vx, vy, vz = VERTICES[idx]
             glVertex3f(vx * size, vy * size, vz * size)
     glEnd()
 
@@ -61,9 +61,9 @@ def _draw_cube(color, size=1.0):
     glPolygonOffset(1.0, 1.0)
     glColor3f(*color)
     glBegin(GL_QUADS)
-    for face in faces:
+    for face in FACES:
         for idx in face:
-            vx, vy, vz = vertices[idx]
+            vx, vy, vz = VERTICES[idx]
             glVertex3f(vx * size, vy * size, vz * size)
     glEnd()
     glDisable(GL_POLYGON_OFFSET_FILL)
