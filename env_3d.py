@@ -207,6 +207,12 @@ def visualize(game_map:list[np.ndarray], player_locations:list[tuple[int,int]]):
         # section_progress values are btwn (1 - action_change) and action_change (e.g. -1/3, 2/3)
         # Ideally it'd be between 0 and 1, but only needs to be accurate between 1/4 and action_change
         section_progress = (map_distance_travelled - step*(current_slice+1)) / step
+
+        if current_slice == len(player_locations) -1 and section_progress >= 0:
+            # player hit an obstacle --> reset
+            lane_x_position = lane_x_start
+            continue
+
         if map_distance_travelled < action_change_distance:
             # start the game standing at (1,1) - in the middle of the 3x3 board
             player_pos = START_LOCATION
