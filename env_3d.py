@@ -10,7 +10,7 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 import numpy as np
 from maps import maps
-from play_text import START_LOCATION
+from core import START_LOCATION
 
 # ------------------ Cube geometry ------------------
 

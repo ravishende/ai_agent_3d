@@ -1,4 +1,4 @@
-from play_text import START_LOCATION, Action
+from core import START_LOCATION, Action
 
 
 
