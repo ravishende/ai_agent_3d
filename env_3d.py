@@ -1,17 +1,15 @@
 """
 Visualizes a map and player.
 Player lives at X=0, fixed relative to camera, while map moves towards them (decreasing x)
-Player can move in the Y and Z axis for actions of LEFT/RIGHT and JUMP/DUCK
+Player can move in the Y and Z axis for actions of JUMP/DUCK and LEFT/RIGHT respectivelly
 """
 
-
-import math
 import pygame
 from pygame.locals import DOUBLEBUF, OPENGL, QUIT
 from OpenGL.GL import *
 from OpenGL.GLU import *
 import numpy as np
-from maps import map1, map2, map3
+from maps import maps
 from play_text import START_LOCATION
 
 # ------------------ Cube geometry ------------------
@@ -261,7 +259,7 @@ def visualize(game_map:list[np.ndarray], player_locations:list[tuple[int,int]]):
 
 def main():
     locations = [(1, 2), (0, 2), (2, 2), (1, 1), (1, 1), (2, 1), (1, 1), (1, 2)]
-    visualize(map2, locations)
+    visualize(maps[1], locations)
 
 if __name__ == "__main__":
     main()    
