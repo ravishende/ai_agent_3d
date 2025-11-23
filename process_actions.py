@@ -1,4 +1,4 @@
-from play_text import START_LOCATION, Action
+from core import START_LOCATION, Action
 
 
 
@@ -8,7 +8,7 @@ def main():
     locations = get_locations_list(action_strs)
     print(locations)
 
-def get_locations_list(actions_list:list[str | Action]) -> list[tuple[int, int]]:
+def get_locations_list(actions_list:list[str] | list[Action]) -> list[tuple[int, int]]:
     """Given a list of actions (as strings or actions), return a list of locations of the player during each action"""
     actions: list[Action] = _process_actions(actions_list)
     curr_location = START_LOCATION
@@ -21,7 +21,7 @@ def get_locations_list(actions_list:list[str | Action]) -> list[tuple[int, int]]
 
 
 
-def _process_actions(actions: list[str | Action]) -> list[Action]:
+def _process_actions(actions: list[str] | list[Action]) -> list[Action]:
     processed_actions = []
     for action in actions:
         if isinstance(action, Action):
