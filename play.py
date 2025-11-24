@@ -48,12 +48,14 @@ def get_args():
         action="store_true",
         help="Use a fixed map instead of generating a random one"
     )
+
+    difficulty_choices = ["easy", "medium", "hard", "expert"]
     parser.add_argument(
         "--difficulty", 
         type=str,
         default="medium",
-        choices=["easy", "medium", "hard"],
-        help="Difficulty of generated map (easy, medium, hard)"
+        choices=difficulty_choices,
+        help=f"Difficulty of generated map {difficulty_choices}"
     )
     parser.add_argument(
         "--length", 

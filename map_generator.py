@@ -47,8 +47,10 @@ class MapGenerator:
             obs_prob = 0.15
         elif difficulty == "medium":
             obs_prob = 0.30
-        else: # hard
+        elif difficulty == "hard":
             obs_prob = 0.45
+        else:  # expert
+            obs_prob = 0.60
 
         track = []
         
@@ -68,11 +70,11 @@ class MapGenerator:
                 candidate_grid = [[0 for _ in range(self.COLS)] for _ in range(self.ROWS)]
                 
                 # For 'hard', sometimes force a specific pattern (funnel)
-                if difficulty == 'hard' and random.random() < 0.2:
+                if difficulty in ['hard', 'expert'] and random.random() < 0.2:
                     blocked_col = random.choice([0, 2])
                     for r in range(self.ROWS):
                         candidate_grid[r][blocked_col] = 1
-                        candidate_grid[r][1] = 1 
+                        candidate_grid[r][1] = 1
                 else:
                     for r in range(self.ROWS):
                         for c in range(self.COLS):
