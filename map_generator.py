@@ -7,6 +7,9 @@ class MapGenerator:
         self.ROWS = 3
         self.COLS = 3
         
+    def check_standing_survival(self, column_slice):
+        return column_slice[1] == 0 and column_slice[2] == 0
+
     def check_survival(self, column_slice):
         """
         Checks if a specific column configuration allows ANY valid posture.
@@ -86,9 +89,18 @@ class MapGenerator:
                 
                 for prev_c in valid_cols_prev:
                     possible_moves = self.get_reachable_columns(prev_c)
-                    for move_c in possible_moves:
-                        col_slice = [candidate_grid[0][move_c], candidate_grid[1][move_c], candidate_grid[2][move_c]]
-                        if self.check_survival(col_slice):
+                    curr_c = prev_c
+                    # distinguish between current column and reachable columns
+                    other_reachable_cols = [col for col in possible_moves if col != prev_c]
+                    curr_col_slice = [candidate_grid[i][curr_c] for i in range(self.ROWS)]
+                    # if any ducking/jumping/stayin in current column are survivable, add it
+                    if self.check_survival(curr_col_slice):
+                        valid_cols_next.add(curr_c)
+                    # if standing in a reachable column is survivable, add it.
+                    # (can't move laterally and jump in one turn)
+                    for move_c in other_reachable_cols:
+                        col_slice = [candidate_grid[i][move_c] for i in range(self.ROWS)]
+                        if self.check_standing_survival(col_slice):
                             valid_cols_next.add(move_c)
 
                 # 3. Finalize
