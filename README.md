@@ -14,9 +14,18 @@ An agent that uses policy iteration to run through a 3d Temple Run / Subway Surf
 
 Project is still in progress.
 
-- To be able to play through a text-based game and see it visualized, run `python3 play.py`
+- To be able to play through a text-based game and see it visualized, run `python3 play.py` with some optional command line arguments.
 
-  - You can specify which map to use with `--map`. E.g. `python3 play.py --map=3`
+  - Ex: `python3 play.py --length=15 --difficulty=hard`
+
+  - By default, maps will be generated randomly.
+
+    - To specify the length of the randomly generated map, use `--length=...` and specify an int.
+    - To specify the difficulty of the randomly genereated map, use `--difficulty=...` with options `easy`, `medium`, or `hard`.
+
+  - You can specify which predetermined map to use with `--fixed --map=...`.
+    - Ex: `python3 play.py --fixed --map=3`
+    - Make sure to include `--fixed` if you don't want a randomly generated map.
 
 - To just play the text game, run `python3 play_text.py`
 

@@ -104,8 +104,11 @@ class MapGenerator:
         return track
 
 # --- Example Usage for Testing ---
-if __name__ == "__main__":
+def main():
     generator = MapGenerator()
     track = generator.generate_track(10, "medium")
     print(f"Generated {len(track)} grids.")
     print(f"Type of grid: {type(track[0])}") # Should be <class 'numpy.ndarray'>
+
+if __name__ == "__main__":
+    main()
