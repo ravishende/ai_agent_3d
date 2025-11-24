@@ -16,16 +16,13 @@ def main():
         print(f"Generating a {args.difficulty} map with {args.length} steps...")
         generator = MapGenerator()
         game_map = generator.generate_track(timesteps=args.length, difficulty=args.difficulty)
-    
     else:
-        # OPTION B: Use a Fixed Map (This is where your code goes)
+        # OPTION B: Use a Fixed Map
         map_idx = args.map - 1
         valid_map_choice = 0 <= map_idx < len(maps)
-        
         if not valid_map_choice:
             print(f"\n\nPlease choose a map between 1 and {len(maps)}. You chose {args.map}\n\n")
             return
-        
         game_map = maps[map_idx]
     
     moves = play_text(game_map, print_moves=False)
@@ -47,20 +44,21 @@ def get_args():
 
     parser.add_argument(
         "--random", 
-        action="store_true", 
+        default=True,
+        action="store_true",
         help="Generate a random map instead of using a fixed one"
     )
     parser.add_argument(
         "--difficulty", 
-        type=str, 
-        default="medium", 
+        type=str,
+        default="medium",
         choices=["easy", "medium", "hard"],
         help="Difficulty of generated map (easy, medium, hard)"
     )
     parser.add_argument(
         "--length", 
-        type=int, 
-        default=50, 
+        type=int,
+        default=50,
         help="Length of the generated track (default: 50)"
     )
 
