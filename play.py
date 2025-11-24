@@ -11,7 +11,7 @@ from map_generator import MapGenerator
 
 def main():
     args = get_args()
-    if args.random:
+    if not args.fixed:
         # OPTION A: Generate a Random Map
         print(f"Generating a {args.difficulty} map with {args.length} steps...")
         generator = MapGenerator()
@@ -43,10 +43,10 @@ def get_args():
     )
 
     parser.add_argument(
-        "--random", 
-        default=True,
+        "--fixed", 
+        default=False,
         action="store_true",
-        help="Generate a random map instead of using a fixed one"
+        help="Use a fixed map instead of generating a random one"
     )
     parser.add_argument(
         "--difficulty", 
