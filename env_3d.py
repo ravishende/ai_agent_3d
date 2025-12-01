@@ -90,6 +90,58 @@ def _grid_to_world(row_index, col_index, cube_size, num_rows=3):
     z = col_index * cube_size
     return y, z
 
+# ------------------ Floor rendering ------------------ 
+
+def _draw_floor(map_length, map_width=3, cube_size=1.0, spacing=1.0, color=(0.5,0.5,0.5)):
+    """Draw a floor of the map for the players and obstacles to rest on
+    
+    Parameters:
+        map_length: number of slices in the map
+        map_width: number of columns in a slice (for a 3xn slice, it would be n)
+        cube_size: the sidelength of a cube in a slice
+        spacing: how far apart slices are
+        color (tuple of 3 floats from 0 to 1): color of the floor
+    Returns:
+        None
+    """
+    step = cube_size+spacing
+    padding = 1 * step # how much extra to add to width and length of floor
+    floor_height = 0.25
+    floor_length = step * map_length + 2*padding
+    floor_width = cube_size * map_width + padding
+    # TODO: find vertices of an object given the height, width, and length
+    half_height = floor_height/2
+    half_length = floor_length/2
+    half_width = floor_width/2
+    floor_vertices = [
+        # x is length, y is height, z is width
+        [-half_length, -half_height, -half_width],
+        [-half_length, -half_height,  half_width],
+        [-half_length,  half_height, -half_width],
+        [-half_length,  half_height,  half_width],
+        [ half_length, -half_height, -half_width],
+        [ half_length, -half_height,  half_width],
+        [ half_length,  half_height, -half_width],
+        [ half_length,  half_height,  half_width],
+    ]
+    x_offset = floor_length/2 - _get_lane_x_start(cube_size, spacing)
+    # bottom row of cubes are centered at y=0. Be below that
+    y_offset = -(cube_size/2 + 0.2)
+    # col 0 of slice is centered at z=0 --> shift floor so it's centered with right-shifted slice
+    z_offset = cube_size * ((map_width-1) // 2)
+    glPushMatrix()
+    glTranslatef(x_offset, y_offset, z_offset)
+    glEnable(GL_POLYGON_OFFSET_FILL)
+    glColor3f(*color)
+    glBegin(GL_QUADS)
+    for face in FACES:
+        for idx in face:
+            vx, vy, vz = floor_vertices[idx]
+            glVertex3f(vx, vy, vz)
+    glEnd()
+    glDisable(GL_POLYGON_OFFSET_FILL)
+    glPopMatrix()
+
 # ------------------ Lane rendering ------------------
 
 def _draw_lane_from_slices(slices, cube_size=1.0, spacing=1.0, num_rows=3):
@@ -105,6 +157,14 @@ def _draw_lane_from_slices(slices, cube_size=1.0, spacing=1.0, num_rows=3):
 
     rows, cols = slices[0].shape
 
+    floor_color = (0.5, 0.5, 0.5)
+    _draw_floor(
+        map_length=len(slices),
+        map_width=rows,
+        cube_size=cube_size,
+        spacing=spacing,
+        color=floor_color)
+
     step = cube_size + spacing
     x_offset = 0.0
 
@@ -119,7 +179,6 @@ def _draw_lane_from_slices(slices, cube_size=1.0, spacing=1.0, num_rows=3):
 
                     glPushMatrix()
                     glTranslatef(x, y, z)
-
                     color = (0.2, 0.8, 0.3)  # mono green-ish
                     _draw_colored_cube_with_outline(color, cube_size)
                     glPopMatrix()
@@ -149,6 +208,17 @@ def _init_pygame_opengl(width=800, height=600, cube_size=1.0):
     glRotatef(10, 1, 0, 0)  # have the camera look down on the world
     glRotatef(90, 0, 1, 0)
 
+# ------------------ Distance retrieval ------------------
+
+def _get_lane_x_start(cube_size, spacing, steps_back=1):
+    """Get the x position for the lane to start at
+    Parameters:
+        cube_size: sidelength of a cube in a slice
+        spacing: how far apart slices are
+        steps_back: how many steps back to push the start
+    """
+    step = cube_size + spacing
+    return spacing + step * steps_back
 
 # ------------------ Main loop ------------------
 
@@ -169,7 +239,7 @@ def visualize(game_map:list[np.ndarray], player_locations:list[tuple[int,int]]):
     # lane dimension and position
     step = cube_size + spacing
     # how far the lane starts toward the camera (in +X)
-    lane_x_start = spacing + 1*step  # can change n steps but don't delete spacing
+    lane_x_start = spacing + 1*step
     lane_length = len(slices) * step
     lane_x_position = lane_x_start
     # movement speed per frame
