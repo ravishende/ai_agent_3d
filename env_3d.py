@@ -222,6 +222,8 @@ def _get_lane_x_start(cube_size, spacing, steps_back=1):
         cube_size: sidelength of a cube in a slice
         spacing: how far apart slices are
         steps_back: how many steps back to push the start
+    Returns:
+        x_distance: the x position for the lane to start at
     """
     step = cube_size + spacing
     return spacing + step * steps_back
