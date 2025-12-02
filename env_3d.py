@@ -271,7 +271,7 @@ def visualize(
     # lane dimension and position
     step = cube_size + spacing
     # how far the lane starts toward the camera (in +X)
-    lane_x_start = spacing + 1*step
+    lane_x_start = _get_lane_x_start(cube_size=cube_size, spacing=spacing)
     lane_length = len(slices) * step
     lane_x_position = lane_x_start
     # movement speed per frame
