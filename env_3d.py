@@ -222,11 +222,11 @@ def _get_lane_x_start(cube_size, spacing, steps_back=1):
 
 # ------------------ Main loop ------------------
 
-def visualize(game_map:list[np.ndarray], player_locations:list[tuple[int,int]]):
+def visualize(
+        game_map:list[np.ndarray], player_locations:list[tuple[int,int]],
+        cube_size: float = 2.0, spacing: float = 40.0):
     """Given a game map and during-action payer locations, visualize a character moving through the map"""
     slices = game_map  # game map
-    cube_size = 2.0
-    spacing = 40.0  # how far apart slices are
 
     _init_pygame_opengl(
         width=800,
@@ -330,7 +330,9 @@ def visualize(game_map:list[np.ndarray], player_locations:list[tuple[int,int]]):
 
 def main():
     locations = [(1, 2), (0, 2), (2, 2), (1, 1), (1, 1), (2, 1), (1, 1), (1, 2)]
-    visualize(maps[1], locations)
+    cube_size = 2.0
+    spacing = 40.0  # how far apart slices are
+    visualize(maps[1], locations, cube_size=cube_size, spacing=spacing)
 
 if __name__ == "__main__":
-    main()    
+    main()
