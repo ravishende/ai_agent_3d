@@ -176,7 +176,13 @@ def _draw_lane_from_slices(slices, cube_size=1.0, spacing=1.0, num_rows=3):
                 if grid[row, col] == 1:
                     y = (num_rows - 1 - row) * cube_size
                     z = col * cube_size
-
+                    # draw shadow
+                    if row != num_rows-1:
+                        glPushMatrix()
+                        glTranslatef(x, 0.0, z)
+                        _draw_shadow(cube_size)
+                        glPopMatrix()
+                    # draw cube
                     glPushMatrix()
                     glTranslatef(x, y, z)
                     color = (0.2, 0.8, 0.3)  # mono green-ish
@@ -219,6 +225,32 @@ def _get_lane_x_start(cube_size, spacing, steps_back=1):
     """
     step = cube_size + spacing
     return spacing + step * steps_back
+
+# ------------------ Shadows ------------------
+
+def _draw_shadow(cube_size):
+    """
+    Draw a simple flat 'shadow blob' on the floor.
+    Assumes we are in lane coordinates, with y=0 at the center of the bottom row cubes.
+    """
+    # Slightly below the bottom row cube center, just above the floor
+    shadow_y = -(cube_size / 2.0 + 0.05)
+    half_x = cube_size * 0.49
+    half_z = cube_size * 0.49
+
+    glEnable(GL_POLYGON_OFFSET_FILL)
+    glPolygonOffset(-2.0, -2.0)  # push it in front of the floor to avoid z-fighting
+    glColor3f(0.0, 0.0, 0.0)     # solid black
+
+    glBegin(GL_QUADS)
+    glVertex3f(-half_x, shadow_y, -half_z)
+    glVertex3f(-half_x, shadow_y,  half_z)
+    glVertex3f( half_x, shadow_y,  half_z)
+    glVertex3f( half_x, shadow_y, -half_z)
+    glEnd()
+
+    glDisable(GL_POLYGON_OFFSET_FILL)
+
 
 # ------------------ Main loop ------------------
 
