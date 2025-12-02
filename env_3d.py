@@ -329,10 +329,11 @@ def visualize(
     pygame.quit()
 
 def main():
+    game_map = maps[1]
     locations = [(1, 2), (0, 2), (2, 2), (1, 1), (1, 1), (2, 1), (1, 1), (1, 2)]
     cube_size = 2.0
     spacing = 40.0  # how far apart slices are
-    visualize(maps[1], locations, cube_size=cube_size, spacing=spacing)
+    visualize(game_map, locations, cube_size=cube_size, spacing=spacing)
 
 if __name__ == "__main__":
     main()
