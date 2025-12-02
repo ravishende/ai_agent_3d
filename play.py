@@ -27,13 +27,13 @@ def main():
     
     moves = play_text(game_map, print_moves=False)
     locations = get_locations_list(actions_list=moves)
-    visualize(game_map, player_locations=locations)
+    visualize(game_map, player_locations=locations, cube_size=args.cubesize, spacing=args.spacing)
 
 
 
 def get_args():
-    """Get Command Line Arguments for map"""
-    parser = argparse.ArgumentParser(description="Example parser with --map flag")
+    """Get Command Line Arguments for map generation and 3D visualization"""
+    parser = argparse.ArgumentParser(description="parser for map generation and visualization")
     
     parser.add_argument(
         "--map",
@@ -41,14 +41,12 @@ def get_args():
         default=1,
         help=f"Which map to choose - from 1 to {len(maps)} (default: 1)"
     )
-
     parser.add_argument(
         "--fixed", 
         default=False,
         action="store_true",
         help="Use a fixed map instead of generating a random one"
     )
-
     difficulty_choices = ["easy", "medium", "hard", "expert"]
     parser.add_argument(
         "--difficulty", 
@@ -62,6 +60,18 @@ def get_args():
         type=int,
         default=50,
         help="Length of the generated track (default: 50)"
+    )
+    parser.add_argument(
+        "--cubesize",
+        type=float,
+        default=2.0,
+        help="size of cubes to visualize (default: 2.0)"
+    )
+    parser.add_argument(
+        "--spacing",
+        type=float,
+        default=40.0,
+        help="spacing of slices of cubes in visualization (default: 40.0)"
     )
 
     args = parser.parse_args()
