@@ -230,8 +230,8 @@ def _get_lane_x_start(cube_size, spacing, steps_back=1):
 
 def _draw_shadow(cube_size):
     """
-    Draw a simple flat 'shadow blob' on the floor.
-    Assumes we are in lane coordinates, with y=0 at the center of the bottom row cubes.
+    Draw a simple flat shadow square on the floor (for beneath floating cube).
+    Assumes already in correct XZ-coordinates, with y=0 at the center of the bottom row cubes.
     """
     # Slightly below the bottom row cube center, just above the floor
     shadow_y = -(cube_size / 2.0 + 0.05)
