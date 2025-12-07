@@ -1,7 +1,3 @@
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-import numpy as np
-=======
 import numpy as np
 
 class PolicyIteration:
@@ -45,4 +41,3 @@ class PolicyIteration:
             if old_a != best_action:
                 policy_stable = False
         return policy_stable
->>>>>>> Stashed changes
