@@ -1,4 +1,4 @@
-from core import START_LOCATION, Action
+from core import INIT_START_LOCATION, GET_START_LOCATION, Action
 
 
 
@@ -8,13 +8,14 @@ def main():
     locations = get_locations_list(action_strs)
     print(locations)
 
-def get_locations_list(actions_list:list[str] | list[Action]) -> list[tuple[int, int]]:
+def get_locations_list(actions_list:list[str] | list[Action], map_width:int=3) -> list[tuple[int, int]]:
     """Given a list of actions (as strings or actions), return a list of locations of the player during each action"""
     actions: list[Action] = _process_actions(actions_list)
-    curr_location = START_LOCATION
+    INIT_START_LOCATION(map_width)
+    curr_location = GET_START_LOCATION()
     locations = []
     for action in actions:
-        during_loc, after_loc = _get_locations(curr_location, action)
+        during_loc, after_loc = _get_locations(curr_location, action, map_width)
         locations.append(during_loc)
         curr_location = after_loc
     return locations
@@ -47,7 +48,8 @@ def _str_to_action(move:str):
     return actions[move]
 
 def _get_locations(curr_location: tuple[int, int],
-                    action:Action) -> tuple[tuple[int, int], tuple[int, int]]:
+                   action:Action,
+                   map_width: int) -> tuple[tuple[int, int], tuple[int, int]]:
     """Given the current location and action, return the location during and immediately after the slice.
     Used for getting locations to rendering graphics.
     
@@ -65,11 +67,11 @@ def _get_locations(curr_location: tuple[int, int],
     """
     row, col = curr_location
     row_change, col_change = action.value
-    # update the row and column, making sure they stay in bounds of 0 and 2
+    # update the row and column, making sure they stay in bounds of 0 and map_width
     new_row = max(0, row + row_change)
-    new_row = min(new_row, 2)
+    new_row = min(new_row, map_width)
     new_col = max(0, col + col_change)
-    new_col = min(new_col, 2)
+    new_col = min(new_col, map_width)
 
     standing_row = 1
     location_during = (new_row, new_col)

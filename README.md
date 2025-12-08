@@ -16,16 +16,23 @@ Project is still in progress.
 
 - To be able to play through a text-based game and see it visualized, run `python3 play.py` with some optional command line arguments.
 
-  - Ex: `python3 play.py --length=15 --difficulty=hard`
+  - Ex: `python3 play.py --width=5 --length=15 --difficulty=hard`
 
-  - By default, maps will be generated randomly.
+  - By default, maps will be generated randomly. Customize the map generation with the following:
 
-    - To specify the length of the randomly generated map, use `--length=...` and specify an int.
-    - To specify the difficulty of the randomly genereated map, use `--difficulty=...` with options `easy`, `medium`, or `hard`.
+    - `--length=...` (int): length of the randomly generated map
+    - `--width=...` (int): width of the randomly generated map
+    - `--difficulty=...` (str): difficulty use with options `easy`, `medium`, `hard`, or `expert`.
 
   - You can specify which predetermined map to use with `--fixed --map=...`.
+
     - Ex: `python3 play.py --fixed --map=3`
     - Make sure to include `--fixed` if you don't want a randomly generated map.
+
+  - To change the 3D visualization of your game, specify the following parameters
+
+    - `--cubesize=...` (float): sidelength of the visualized cubes (default is 2.0)
+    - `--spacing=...` (float): space between each slice of cubes (default is 40.0)
 
 - To just play the text game, run `python3 play_text.py`
 

@@ -10,7 +10,7 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 import numpy as np
 from maps import maps
-from core import START_LOCATION
+from core import INIT_START_LOCATION, GET_START_LOCATION
 
 # ------------------ Cube geometry ------------------
 
@@ -109,7 +109,7 @@ def _draw_floor(map_length, map_width=3, cube_size=1.0, spacing=1.0, color=(0.5,
     floor_height = 0.25
     floor_length = step * map_length + 2*padding
     floor_width = cube_size * map_width + padding
-    # TODO: find vertices of an object given the height, width, and length
+
     half_height = floor_height/2
     half_length = floor_length/2
     half_width = floor_width/2
@@ -127,8 +127,9 @@ def _draw_floor(map_length, map_width=3, cube_size=1.0, spacing=1.0, color=(0.5,
     x_offset = floor_length/2 - _get_lane_x_start(cube_size, spacing)
     # bottom row of cubes are centered at y=0. Be below that
     y_offset = -(cube_size/2 + 0.2)
-    # col 0 of slice is centered at z=0 --> shift floor so it's centered with right-shifted slice
-    z_offset = cube_size * ((map_width-1) // 2)
+    # Let caller handle Z-centering; we stay centered around z = 0 here
+    z_offset = 0.0
+
     glPushMatrix()
     glTranslatef(x_offset, y_offset, z_offset)
     glEnable(GL_POLYGON_OFFSET_FILL)
@@ -158,13 +159,19 @@ def _draw_lane_from_slices(slices, cube_size=1.0, spacing=1.0, num_rows=3):
     rows, cols = slices[0].shape
 
     floor_color = (0.5, 0.5, 0.5)
+
+    # Center the lane in Z so the middle column is at z = 0
+    center_z_offset = ((cols - 1) * cube_size) / 2.0
+
     _draw_floor(
         map_length=len(slices),
-        map_width=rows,
+        map_width=cols,
         cube_size=cube_size,
         spacing=spacing,
         color=floor_color)
 
+    glPushMatrix()
+    glTranslatef(0.0, 0.0, -center_z_offset)
     step = cube_size + spacing
     x_offset = 0.0
 
@@ -189,6 +196,7 @@ def _draw_lane_from_slices(slices, cube_size=1.0, spacing=1.0, num_rows=3):
                     _draw_colored_cube_with_outline(color, cube_size)
                     glPopMatrix()
 
+    glPopMatrix()  # pop lane-centering transform
 
 # ------------------ OpenGL / Pygame setup ------------------
 
@@ -261,6 +269,11 @@ def visualize(
         cube_size: float = 2.0, spacing: float = 40.0):
     """Given a game map and during-action payer locations, visualize a character moving through the map"""
     slices = game_map  # game map
+    cols = slices[0].shape[1]
+    INIT_START_LOCATION(map_width=cols)
+
+    # Compute lane centering offset in Z (used to center the player)
+    center_z_offset = ((cols - 1) * cube_size) / 2.0
 
     _init_pygame_opengl(
         width=800,
@@ -289,7 +302,6 @@ def visualize(
         dt = dt_ms / 1000.0
         fps = clock.get_fps()
 
-
         for event in pygame.event.get():
             if event.type == QUIT:
                 running = False
@@ -317,8 +329,8 @@ def visualize(
                 continue
 
         if map_distance_travelled < action_change_distance:
-            # start the game standing at (1,1) - in the middle of the 3x3 board
-            player_pos = START_LOCATION
+            # start the game standing at (cols//2,1) - in the middle of the board
+            player_pos = GET_START_LOCATION()
         elif 1/4 <= section_progress < action_change_distance/step:
             # reset after previous action: return to standing in the same col as the prev action
             _, prev_col = player_locations[current_slice]
@@ -330,13 +342,15 @@ def visualize(
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-
+        # ---- Draw player ----
         glPushMatrix()
         player_color = (0.9, 0.2, 0.2)  # reddish color
         # first cube: top half/torso of player
         player_y, player_z = _grid_to_world(player_pos[0], player_pos[1], cube_size)
-        glTranslatef(0.0, player_y, player_z)
+        # shift in Z so middle column is around z = 0
+        glTranslatef(0.0, player_y, player_z - center_z_offset)
         _draw_colored_cube_with_outline(player_color, cube_size)
+
         # Second cube (bottom half of player) depends on posture:
         # row == 1: standing vertically (feet below the torso)
         player_row = player_pos[0]
@@ -352,6 +366,7 @@ def visualize(
         _draw_colored_cube_with_outline(player_color, cube_size)
         glPopMatrix()
 
+        # ---- Draw lane ----
         glPushMatrix()
         # move entire lane along -X (toward camera)
         glTranslatef(lane_x_position, 0.0, 0.0)

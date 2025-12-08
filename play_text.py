@@ -1,16 +1,16 @@
 """
 Brainstorming how States and Actions would work
 """
-from core import State, Action, START_LOCATION, INIT_GAME, VIEW_GRIDS
+from core import State, Action, GET_START_LOCATION, INIT_GAME, VIEW_GRIDS
 from maps import maps
 
-def play_text(game_map, print_moves=False):
+def play_text(game_map, print_moves=False, difficulty="medium"):
     """
     Play a text based version of the game
     """
     INIT_GAME(game_map)
 
-    state = State(time_index=0, player_location=START_LOCATION)
+    state = State(time_index=0, player_location=GET_START_LOCATION())
     moves = []
     total_reward = 0
     total_moves = 0
@@ -18,7 +18,9 @@ def play_text(game_map, print_moves=False):
     while state.grid is not None:
         print("\n\n")
         # print map
-        newest_n_grids = VIEW_GRIDS(t=state.time_index, n_grids=2)[::-1]
+        difficulties = ["easy", "medium", "hard", "expert"]
+        n_grids = 2 + difficulties.index(difficulty)  # for harder modes, show further into the future
+        newest_n_grids = VIEW_GRIDS(t=state.time_index, n_grids=n_grids)[::-1]
         for i, grid in enumerate(newest_n_grids):
             print(f"{len(newest_n_grids) - i})\n{grid}\n")
         # print player

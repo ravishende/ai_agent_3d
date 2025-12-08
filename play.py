@@ -13,8 +13,8 @@ def main():
     args = get_args()
     if not args.fixed:
         # OPTION A: Generate a Random Map
-        print(f"Generating a {args.difficulty} map with {args.length} steps...")
-        generator = MapGenerator()
+        print(f"Generating {args.difficulty} 3x{args.width} map with {args.length} steps...")
+        generator = MapGenerator(args.width)
         game_map = generator.generate_track(timesteps=args.length, difficulty=args.difficulty)
     else:
         # OPTION B: Use a Fixed Map
@@ -25,8 +25,8 @@ def main():
             return
         game_map = maps[map_idx]
     
-    moves = play_text(game_map, print_moves=False)
-    locations = get_locations_list(actions_list=moves)
+    moves = play_text(game_map, print_moves=False, difficulty=args.difficulty)
+    locations = get_locations_list(actions_list=moves, map_width=args.width)
     visualize(game_map, player_locations=locations, cube_size=args.cubesize, spacing=args.spacing)
 
 
@@ -60,6 +60,12 @@ def get_args():
         type=int,
         default=50,
         help="Length of the generated track (default: 50)"
+    )
+    parser.add_argument(
+        "--width", 
+        type=int,
+        default=3,
+        help="Width of the generated track (default: 3)"
     )
     parser.add_argument(
         "--cubesize",
