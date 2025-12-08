@@ -64,18 +64,22 @@ class MapGenerator:
         while not valid_grid_found and attempts <100:
             candidate_grid = np.zeros((self.ROWS,self.COLS), dtype=int)
             # Dynamic Hard Mode Pattern (Works for any N width)
-            # Creates a funnel by blocking an edge and the middle
+            # Creates a funnel by blocking all but one reachable column
             if difficulty in ("hard", "expert") and random.random() < 0.2:
-                # Pick either Left Edge (0) or Right Edge (N-1)
-                edge_cols = [0, self.COLS - 1]
-                blocked_col = random.choice(edge_cols)
-                middle_col = self.COLS // 2
-                
-                for r in range(self.ROWS):
-                    candidate_grid[r][blocked_col] = 1
-                    # Block the middle as well to force movement
-                    if middle_col != blocked_col:
-                         candidate_grid[r][middle_col] = 1
+                safe_prev_col = random.choice(list(self.valid_cols_prev))
+                # normal case: randomly choose a safe col to the left or right
+                safe_col = safe_prev_col + random.choice([-1, 1])
+                # Handle edge cases
+                if safe_col == -1:
+                    safe_col = 1  # choose 1 rather than 0 so they still have to move from 0
+                elif safe_col == self.COLS:
+                    safe_col = self.COLS-2 # choose -2 so they still have to move from edge
+
+                # block all but chosen col
+                for col in range(self.COLS):
+                    if col == safe_col:
+                        continue
+                    candidate_grid[:, col] = 1
             else:
                 # Random noise generation across all N columns
                 for r in range(self.ROWS):
@@ -106,7 +110,7 @@ class MapGenerator:
                 valid_grid_found = True
             else:
                 attempts += 1
-        
+
         if not valid_grid_found:
             final_grid = np.zeros((self.ROWS, self.COLS), dtype=int)
 
@@ -138,4 +142,4 @@ if __name__ == "__main__":
     print(f"Testing generate_step with {WIDTH_N} lanes:")
     generator.reset()
     for i in range(3):
-        print(f"Slice {i}: \n{generator.generate_step(difficulty="medium")}")
+        print(f"Slice {i}: \n{generator.generate_step(difficulty="expert")}")
