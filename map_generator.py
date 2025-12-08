@@ -11,7 +11,11 @@ class MapGenerator:
         start_col = n_cols // 2
         # State for generation: Tracks which columns the agent could validly be in
         self.valid_cols_prev: Set[int] = {start_col}
-        
+    
+    def check_standing_survival(self, column_slice):
+        """Checks if you can survive by standing in a column"""
+        return column_slice[1] == 0 and column_slice[2] == 0
+
     def check_survival(self, column_slice):
         """
         Checks if a specific column configuration allows ANY valid posture.
@@ -33,11 +37,6 @@ class MapGenerator:
     def get_reachable_columns(self, current_col):
         """Returns list of columns reachable from current_col (left, stay, right)"""
         moves = [current_col - 1, current_col, current_col + 1]
-        return [c for c in moves if 0 <= c < self.COLS]
-
-    def get_reachable_columns(self, current_col):
-        """Returns list of columns reachable from current_col (left, stay, right)"""
-        moves = [current_col - 1, current_col, current_col + 1]
         # Filter out moves that go off the edges of the N-lane map
         return [c for c in moves if 0 <= c < self.COLS]
     
@@ -53,8 +52,11 @@ class MapGenerator:
             obs_prob = 0.15
         elif difficulty == "medium":
             obs_prob = 0.30
-        else:
-            obs_prob =0.45
+        elif difficulty == "hard":
+            obs_prob = 0.45
+        else:  # expert
+            obs_prob = 0.60
+
         valid_grid_found = False
         attempts = 0
         final_grid = np.zeros((self.ROWS,self.COLS), dtype=int)
@@ -63,7 +65,7 @@ class MapGenerator:
             candidate_grid = np.zeros((self.ROWS,self.COLS), dtype=int)
             # Dynamic Hard Mode Pattern (Works for any N width)
             # Creates a funnel by blocking an edge and the middle
-            if difficulty == 'hard' and random.random() < 0.2:
+            if difficulty in ("hard", "expert") and random.random() < 0.2:
                 # Pick either Left Edge (0) or Right Edge (N-1)
                 edge_cols = [0, self.COLS - 1]
                 blocked_col = random.choice(edge_cols)
@@ -72,7 +74,7 @@ class MapGenerator:
                 for r in range(self.ROWS):
                     candidate_grid[r][blocked_col] = 1
                     # Block the middle as well to force movement
-                    if middle_col != blocked_col: 
+                    if middle_col != blocked_col:
                          candidate_grid[r][middle_col] = 1
             else:
                 # Random noise generation across all N columns
@@ -85,10 +87,17 @@ class MapGenerator:
             valid_cols_next = set()
             for prev_c in self.valid_cols_prev:
                 possible_moves = self.get_reachable_columns(prev_c)
-                for move_c in possible_moves:
+                # distinguish between current column and reachable columns (for survivability)
+                curr_c = prev_c
+                other_reachable_cols = [col for col in possible_moves if col != prev_c]
+                # if any ducking/jumping/stayin in current column are survivable, add it
+                curr_col_slice = candidate_grid[:, curr_c]
+                if self.check_survival(curr_col_slice):
+                    valid_cols_next.add(curr_c)
+                for move_c in other_reachable_cols:
                     # Numpy slicing to extract the column at move_c
                     col_slice = candidate_grid[:, move_c]
-                    if self.check_survival(col_slice):
+                    if self.check_standing_survival(col_slice):
                         valid_cols_next.add(move_c)
 
             if len(valid_cols_next) > 0:
@@ -99,13 +108,16 @@ class MapGenerator:
                 attempts += 1
         
         if not valid_grid_found:
-             final_grid = np.zeros((self.ROWS, self.COLS), dtype=int)
+            final_grid = np.zeros((self.ROWS, self.COLS), dtype=int)
 
         return final_grid
+
     def infinite_track(self, difficulty="medium") -> Iterator[np.ndarray]:
         """Yields 3xN grids one by one FOREVER."""
         self.reset()
+        # First grid is all 0s
         yield np.zeros((self.ROWS, self.COLS), dtype=int)
+        # Whenever called, give a new slice
         while True:
             yield self.generate_step(difficulty)
 
@@ -117,13 +129,13 @@ class MapGenerator:
         for _ in range(timesteps - 1):
             track.append(self.generate_step(difficulty))
         return track
-    
+
 # --- Example Usage for Testing ---
 if __name__ == "__main__":
-    # Test with a wider map (e.g., 5 lanes)
+    # Test with a wider map (e.g., 9 lanes)
     WIDTH_N = 9
     generator = MapGenerator(n_cols=WIDTH_N)
     print(f"Testing generate_step with {WIDTH_N} lanes:")
     generator.reset()
     for i in range(3):
-        print(f"Slice {i}: \n{generator.generate_step()}")
+        print(f"Slice {i}: \n{generator.generate_step(difficulty="medium")}")
