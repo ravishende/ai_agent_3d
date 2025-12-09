@@ -145,11 +145,12 @@ class State:
         """
         row, col = player_location
         row_change, col_change = action.value
-        # update the row and column, making sure they stay in bounds of 0 and _MAP_WIDTH
+        # update the row and column, making sure they stay in bounds of 0->2 and 0->_MAP_WIDTH-1
+        max_row = 2
         new_row = max(0, row + row_change)
-        new_row = min(new_row, _MAP_WIDTH)
+        new_row = min(new_row, max_row)
         new_col = max(0, col + col_change)
-        new_col = min(new_col, _MAP_WIDTH)
+        new_col = min(new_col, _MAP_WIDTH-1)
         return (new_row, new_col)
 
 
