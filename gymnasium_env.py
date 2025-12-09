@@ -28,7 +28,7 @@ class ObstacleCourseEnv(gym.Env):
 
         self.num_timesteps = len(game_map)
         self.num_rows = 3
-        self.num_cols = 3
+        self.num_cols = game_map[0].shape[1]
 
         self.action_space = spaces.Discrete(5)
 

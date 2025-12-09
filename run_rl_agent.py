@@ -44,7 +44,7 @@ def run_rl_on_map(game_map, gamma=0.98, visualize_result=False,
     if visualize_result:
         if verbose:
             print("\nLaunching 3D visualization...")
-        locations = get_locations_list(optimal_actions)
+        locations = get_locations_list(optimal_actions, map_width=game_map[0].shape[1])
         visualize(game_map, locations, cube_size=cube_size, spacing=spacing)
     
     return {
@@ -86,6 +86,13 @@ def main():
         type=int,
         default=20,
         help="Length of generated map (timesteps)"
+    )
+
+    parser.add_argument(
+        "--width", 
+        type=int,
+        default=3,
+        help="Width of the generated track (default: 3)"
     )
     
     parser.add_argument(
@@ -132,7 +139,7 @@ def main():
     else:
         if not args.quiet:
             print(f"Generating {args.difficulty} map with {args.length} timesteps...")
-        generator = MapGenerator(n_cols=3)
+        generator = MapGenerator(n_cols=args.width)
         game_map = generator.generate_track(
             timesteps=args.length,
             difficulty=args.difficulty
