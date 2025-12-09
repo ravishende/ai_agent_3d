@@ -1,6 +1,6 @@
 import numpy as np
 from gymnasium_env import ObstacleCourseEnv
-from core import START_LOCATION, Action
+from core import GET_START_LOCATION, Action
 
 class IntegratedPolicyIteration:
     def __init__(self, env: ObstacleCourseEnv, gamma=0.98):
@@ -77,7 +77,7 @@ class IntegratedPolicyIteration:
         state_idx, _ = self.env.reset()
         if verbose:
             print("\nExtracting optimal action sequence...")
-            print(f"Starting state: {START_LOCATION}")
+            print(f"Starting state: {GET_START_LOCATION()}")
 
         while True:
             action_idx = self.policy[state_idx]
@@ -128,7 +128,7 @@ class IntegratedPolicyIteration:
         }
 
 
-def solve_map(game_map, gamma=0.98, verbose=True):
+def solve_map(game_map, gamma=0.98, verbose=True) -> tuple[list[Action], IntegratedPolicyIteration]:
     # Create environment
     env = ObstacleCourseEnv(game_map)
 

@@ -132,7 +132,7 @@ def main():
     else:
         if not args.quiet:
             print(f"Generating {args.difficulty} map with {args.length} timesteps...")
-        generator = MapGenerator()
+        generator = MapGenerator(n_cols=3)
         game_map = generator.generate_track(
             timesteps=args.length,
             difficulty=args.difficulty

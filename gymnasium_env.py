@@ -2,7 +2,7 @@
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
-from core import State, Action, INIT_GAME, START_LOCATION
+from core import State, Action, INIT_GAME, GET_START_LOCATION
 
 
 class ObstacleCourseEnv(gym.Env):
@@ -77,7 +77,7 @@ class ObstacleCourseEnv(gym.Env):
         """Reset the environment to the initial state."""
         super().reset(seed=seed)
 
-        self.state = State(time_index=0, player_location=START_LOCATION)
+        self.state = State(time_index=0, player_location=GET_START_LOCATION())
         obs = self._state_to_obs(self.state)
 
         return obs, {}
