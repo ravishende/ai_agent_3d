@@ -113,7 +113,6 @@ class State:
         new_location = (stand_row, new_location[1])
         if reward == 0:
             # Collision --> no next state (game over)
-            print("\n\nCrash!")
             return reward, State(-1, new_location)
         return reward, State(self.time_index+1, new_location)
 
