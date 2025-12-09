@@ -68,10 +68,11 @@ def _get_locations(curr_location: tuple[int, int],
     row, col = curr_location
     row_change, col_change = action.value
     # update the row and column, making sure they stay in bounds of 0 and map_width
+    max_row = 2
     new_row = max(0, row + row_change)
-    new_row = min(new_row, map_width)
+    new_row = min(new_row, max_row)
     new_col = max(0, col + col_change)
-    new_col = min(new_col, map_width)
+    new_col = min(new_col, map_width-1)
 
     standing_row = 1
     location_during = (new_row, new_col)

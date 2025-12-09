@@ -135,7 +135,6 @@ class State:
         new_location = (stand_row, new_location[1])
         if reward == 0:
             # Collision --> no next state (game over)
-            print("\n\nCrash!")
             return reward, State(-1, new_location)
         return reward, State(self.time_index+1, new_location)
 
@@ -146,11 +145,12 @@ class State:
         """
         row, col = player_location
         row_change, col_change = action.value
-        # update the row and column, making sure they stay in bounds of 0 and _MAP_WIDTH
+        # update the row and column, making sure they stay in bounds of 0->2 and 0->_MAP_WIDTH-1
+        max_row = 2
         new_row = max(0, row + row_change)
-        new_row = min(new_row, _MAP_WIDTH)
+        new_row = min(new_row, max_row)
         new_col = max(0, col + col_change)
-        new_col = min(new_col, _MAP_WIDTH)
+        new_col = min(new_col, _MAP_WIDTH-1)
         return (new_row, new_col)
 
 
