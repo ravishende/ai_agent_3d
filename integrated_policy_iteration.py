@@ -11,13 +11,13 @@ class IntegratedPolicyIteration:
         self.V = np.zeros(self.n_states)
         self.policy = np.random.randint(0, self.n_actions, size=self.n_states)
         if hasattr(env, 'terminal_state_idx'):
-            self.policy[env.terminal_state_idx] = 4  
-    
+            self.policy[env.terminal_state_idx] = 4
+
     def policy_evaluation(self, theta=1e-6, max_iterations=1000):
         iteration = 0
         while iteration < max_iterations:
             delta = 0
-            
+
             for s in range(self.n_states):
                 v_old = self.V[s]
                 a = self.policy[s]
@@ -27,20 +27,20 @@ class IntegratedPolicyIteration:
                 else:
                     self.V[s] = reward + self.gamma * self.V[next_s]
                 delta = max(delta, abs(v_old - self.V[s]))
-            
+
             iteration += 1
             if delta < theta:
                 break
-        
+
         return iteration
-    
+
     def policy_improvement(self):
         policy_stable = True
-        
+
         for s in range(self.n_states):
             old_action = self.policy[s]
             action_values = np.zeros(self.n_actions)
-            
+
             for a in range(self.n_actions):
                 next_s, reward, done = self.env.preview_action(s, a)
                 if done:
@@ -52,16 +52,16 @@ class IntegratedPolicyIteration:
             self.policy[s] = best_action
             if old_action != best_action:
                 policy_stable = False
-        
+
         return policy_stable
-    
+
     def run(self, max_iterations=100, eval_theta=1e-6, verbose=True):
         for iteration in range(max_iterations):
 
             eval_iters = self.policy_evaluation(theta=eval_theta)
             if verbose and iteration % 5 == 0:
                 print(f"Iteration {iteration}: Policy evaluation converged in {eval_iters} steps")
-            
+
             policy_stable = self.policy_improvement()
             if policy_stable:
                 if verbose:
@@ -71,7 +71,7 @@ class IntegratedPolicyIteration:
         if verbose:
             print(f"\n⚠ Reached maximum iterations ({max_iterations})")
         return False, max_iterations
-    
+
     def get_action_sequence(self, verbose=False):
         actions = []
         state_idx, _ = self.env.reset()
@@ -83,7 +83,7 @@ class IntegratedPolicyIteration:
             action_idx = self.policy[state_idx]
             action_enum = self.env.ACTION_MAP[action_idx]
             actions.append(action_enum)
-            
+
             if verbose:
                 state_info = self.env.get_state_info(state_idx)
                 print(f"  t={state_info['time_index']}, "
@@ -101,25 +101,25 @@ class IntegratedPolicyIteration:
                 break
 
         return actions
-    
+
     def evaluate_policy_on_map(self):
         actions = self.get_action_sequence(verbose=False)
         state_idx, _ = self.env.reset()
-        
+
         total_reward = 0
         steps = 0
         success = False
-        
+
         for action_enum in actions:
             action_idx = self.env.ACTION_TO_IDX[action_enum]
             state_idx, reward, terminated, _, _ = self.env.step(action_idx)
             total_reward += reward
             steps += 1
-            
+
             if terminated:
-                success = (reward > 0)
+                success = reward > 0
                 break
-        
+
         return {
             'total_reward': total_reward,
             'steps': steps,
