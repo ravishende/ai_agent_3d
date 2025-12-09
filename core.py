@@ -1,18 +1,40 @@
 from enum import Enum
 import numpy as np
 
-START_LOCATION = (1,1)
-GAME_MAP: list[np.ndarray] | None = None
+_GAME_MAP: list[np.ndarray] | None = None
+_START_LOCATION = (1,1) # for 3xN maps, call START_LOCATION
+_MAP_WIDTH = 3
+
+def INIT_START_LOCATION(map_width: int):
+    """Call this function before using START_LOCATION on 3xN maps
+    Parameters:
+        map_width: how many columns are in a map
+    """
+    global _START_LOCATION, _MAP_WIDTH
+    start_col = map_width // 2
+    _START_LOCATION = (1, start_col)
+    _MAP_WIDTH = map_width
+
+
+def GET_START_LOCATION():
+    return _START_LOCATION
+
+
 def INIT_GAME(game_map: list[np.ndarray]) -> None:
-    """Initialize the game board as a list of grids"""
-    global GAME_MAP
-    GAME_MAP = game_map.copy()
+    """
+    Initialize the game board as a list of grids. (and init START_LOCATION)
+    """
+    global _GAME_MAP, _MAP_WIDTH
+    _GAME_MAP = game_map.copy()
+    map_width = game_map[0].shape[1]
+    _MAP_WIDTH = map_width
+    INIT_START_LOCATION(map_width)
 
 def GRID_AT(t: int) -> np.ndarray | None:
     """Get the grid at time index t or None if past the end of the game map."""
-    assert GAME_MAP is not None, "Game map has not been initialized. Call INIT_GAME first."
-    if 0 <= t < len(GAME_MAP):
-        return GAME_MAP[t]
+    assert _GAME_MAP is not None, "Game map has not been initialized. Call INIT_GAME first."
+    if 0 <= t < len(_GAME_MAP):
+        return _GAME_MAP[t]
     return None
 
 def VIEW_GRIDS(t: int, n_grids:int = 2):
@@ -123,11 +145,11 @@ class State:
         """
         row, col = player_location
         row_change, col_change = action.value
-        # update the row and column, making sure they stay in bounds of 0 and 2
+        # update the row and column, making sure they stay in bounds of 0 and _MAP_WIDTH
         new_row = max(0, row + row_change)
-        new_row = min(new_row, 2)
+        new_row = min(new_row, _MAP_WIDTH)
         new_col = max(0, col + col_change)
-        new_col = min(new_col, 2)
+        new_col = min(new_col, _MAP_WIDTH)
         return (new_row, new_col)
 
 
