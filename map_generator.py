@@ -119,8 +119,6 @@ class MapGenerator:
     def infinite_track(self, difficulty="medium") -> Iterator[np.ndarray]:
         """Yields 3xN grids one by one FOREVER."""
         self.reset()
-        # First grid is all 0s
-        yield np.zeros((self.ROWS, self.COLS), dtype=int)
         # Whenever called, give a new slice
         while True:
             yield self.generate_step(difficulty)
@@ -129,7 +127,6 @@ class MapGenerator:
         """Generates a fixed length track list."""
         self.reset()
         track = []
-        track.append(np.zeros((self.ROWS, self.COLS), dtype=int))
         for _ in range(timesteps - 1):
             track.append(self.generate_step(difficulty))
         return track
