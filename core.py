@@ -4,6 +4,7 @@ import numpy as np
 _GAME_MAP: list[np.ndarray] | None = None
 _START_LOCATION = (1,1) # for 3xN maps, call START_LOCATION
 _MAP_WIDTH = 3
+_STAND_ROW = 1
 
 def INIT_START_LOCATION(map_width: int):
     """Call this function before using START_LOCATION on 3xN maps
@@ -12,7 +13,7 @@ def INIT_START_LOCATION(map_width: int):
     """
     global _START_LOCATION, _MAP_WIDTH
     start_col = map_width // 2
-    _START_LOCATION = (1, start_col)
+    _START_LOCATION = (_STAND_ROW, start_col)
     _MAP_WIDTH = map_width
 
 
@@ -58,10 +59,13 @@ class Action(Enum):
 
 
 class State:
-    """A state contains a grid and the player's current location"""
-    def __init__(self, time_index:int, player_location:tuple[int,int]):
+    """
+    A state contains a grid and the player's current column
+    We don't need the row because the player is always standing before the next slice comes (row=1)
+    """
+    def __init__(self, time_index:int, player_col:int):
         self.time_index: int = time_index
-        self.player_location: tuple[int,int] = player_location
+        self.player_col: int = player_col
         self.grid: np.ndarray | None = GRID_AT(time_index)
 
     def is_terminal(self) -> bool:
@@ -71,8 +75,8 @@ class State:
     def preview(self, action:Action) -> tuple[int, "State"]:
         """
         See the outcome (resulting reward, new state) of taking a given action.
-        The new state.player_location is what is set up to take the next action.
-        Ex: if current location is (1,0) and action is JUMP, then returned state's location is (1,0) not (0,0).
+        If the action is JUMP, STAY, or DUCK, the new state.player_col is the same. 
+        LEFT and RIGHT actions can change the resulting state.player_col.
         Parameters:
             action: the action the player takes
         Returns:
@@ -84,8 +88,8 @@ class State:
     def move(self, action:Action) -> tuple[int, "State"]:
         """
         Take a given action and return the resulting reward and new state
-        The new location is what is set up to take the next action.
-        Ex: if current location is (1,0) and action is JUMP, then returned state's location is (1,0) not (0,0).
+        If the action is JUMP, STAY, or DUCK, the new state.player_col is the same. 
+        LEFT and RIGHT actions can change the resulting state.player_col.
         Parameters:
             action: the action the player takes
         Returns:
@@ -101,7 +105,7 @@ class State:
         """
         assert self.grid is not None, "Cannnot perform more actions from a terminal state."
 
-        new_location = self._update_location(self.player_location, action)
+        new_location = self._update_location(self.player_col, action)
         # action results in immediate death --> no reward
         if self._collides(new_location, self.grid):
             return 0
@@ -129,21 +133,20 @@ class State:
             return 0, self
 
         reward = self.get_reward(action)
-        new_location = self._update_location(self.player_location, action)
+        _, new_col = self._update_location(self.player_col, action)
         # after move has been done, player should no longer be jumping/ducking
-        stand_row = 1
-        new_location = (stand_row, new_location[1])
         if reward == 0:
             # Collision --> no next state (game over)
-            return reward, State(-1, new_location)
-        return reward, State(self.time_index+1, new_location)
+            return reward, State(-1, new_col)
+        return reward, State(self.time_index+1, new_col)
 
-    def _update_location(self, player_location:tuple[int,int], action:Action):
+    def _update_location(self, player_col:int, action:Action) -> tuple[int, int]:
         """
-        Given a current player location and an action, return the new player location.
+        Given a current player location and an action, return the player location during the action.
         Returns the location while the player is interacting with a grid (not after)
         """
-        row, col = player_location
+        col = player_col
+        row = 1  # the player is always standing before the coming slice (row=1)
         row_change, col_change = action.value
         # update the row and column, making sure they stay in bounds of 0->2 and 0->_MAP_WIDTH-1
         max_row = 2
@@ -167,4 +170,4 @@ class State:
         return False
 
     def __str__(self):
-        return "="*50 + f"\nLocation: {self.player_location}\nGrid (t={self.time_index}):\n{self.grid}\n" + "="*50
+        return "="*50 + f"\nLocation: col={self.player_col}\nGrid (t={self.time_index}):\n{self.grid}\n" + "="*50

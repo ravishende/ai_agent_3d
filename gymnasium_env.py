@@ -32,7 +32,7 @@ class ObstacleCourseEnv(gym.Env):
 
         self.action_space = spaces.Discrete(5)
 
-        self.num_states = (self.num_timesteps + 1) * self.num_rows * self.num_cols + 1
+        self.num_states = (self.num_timesteps + 1) * self.num_cols + 1
         self.observation_space = spaces.Discrete(self.num_states)
 
         self.state = None
@@ -46,38 +46,37 @@ class ObstacleCourseEnv(gym.Env):
 
         idx = 0
         for t in range(self.num_timesteps + 1):
-            for row in range(self.num_rows):
-                for col in range(self.num_cols):
-                    state_key = (t, row, col)
-                    self.state_to_idx[state_key] = idx
-                    self.idx_to_state[idx] = state_key
-                    idx += 1
+            for col in range(self.num_cols):
+                state_key = (t, col)
+                self.state_to_idx[state_key] = idx
+                self.idx_to_state[idx] = state_key
+                idx += 1
 
         self.terminal_state_idx = idx
-        self.state_to_idx[(-1, -1, -1)] = self.terminal_state_idx
-        self.idx_to_state[self.terminal_state_idx] = (-1, -1, -1)
+        self.state_to_idx[(-1, -1)] = self.terminal_state_idx
+        self.idx_to_state[self.terminal_state_idx] = (-1, -1)
 
     def _state_to_obs(self, state: State) -> int:
         """Convert a State object to an observation (integer index)."""
         if state.is_terminal() and state.time_index == -1:
             return self.terminal_state_idx
 
-        state_key = (state.time_index, state.player_location[0], state.player_location[1])
+        state_key = (state.time_index, state.player_col)
         return self.state_to_idx[state_key]
 
     def _obs_to_state(self, obs: int) -> State:
         """Convert an observation (integer index) to a State object."""
         if obs == self.terminal_state_idx:
-            return State(-1, (-1, -1))
+            return State(-1, -1)
 
-        t, row, col = self.idx_to_state[obs]
-        return State(t, (row, col))
+        t, col = self.idx_to_state[obs]
+        return State(t, col)
 
     def reset(self, seed=None, options=None):
         """Reset the environment to the initial state."""
         super().reset(seed=seed)
 
-        self.state = State(time_index=0, player_location=GET_START_LOCATION())
+        self.state = State(time_index=0, player_col=GET_START_LOCATION()[1])
         obs = self._state_to_obs(self.state)
 
         return obs, {}
@@ -103,7 +102,7 @@ class ObstacleCourseEnv(gym.Env):
 
         info = {
             'time_index': new_state.time_index,
-            'player_location': new_state.player_location,
+            'player_location': new_state.player_col,
             'action_taken': action_enum.name
         }
 
@@ -118,12 +117,12 @@ class ObstacleCourseEnv(gym.Env):
                 'grid': None
             }
 
-        t, row, col = self.idx_to_state[state_idx]
-        state = State(t, (row, col))
+        t, col = self.idx_to_state[state_idx]
+        state = State(t, col)
 
         return {
             'time_index': t,
-            'position': (row, col),
+            'player_col': col,
             'grid': state.grid
         }
 
@@ -145,7 +144,7 @@ class ObstacleCourseEnv(gym.Env):
 
         print(f"\n{'='*50}")
         print(f"Time: {self.state.time_index}")
-        print(f"Player Location: {self.state.player_location}")
+        print(f"Player Location: {self.state.player_col}")
         if self.state.grid is not None:
             print(f"Current Grid:\n{self.state.grid}")
         else:
