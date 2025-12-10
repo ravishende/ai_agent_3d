@@ -2,6 +2,8 @@
 
 An agent that uses policy iteration to run through a 3d Temple Run / Subway Surfers style environment
 
+To see some of the thought process behind it, look in `docs/`
+
 # Setup
 
 1. Create and run virtual environment
@@ -16,7 +18,7 @@ An agent that uses policy iteration to run through a 3d Temple Run / Subway Surf
 
 To see the agent play, run `python3 run_rl_agent.py` with some optional command line arguments:
 
-- Ex: `python3 run_rl_agent.py --length=15 --difficulty=hard --visualize --quiet`
+- Ex: `python3 run_rl_agent.py --length=15 --width=9 --difficulty=expert --visualize --quiet`
 
 - To change the output:
 
