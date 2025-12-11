@@ -1,6 +1,6 @@
 import numpy as np
 from gymnasium_env import ObstacleCourseEnv
-from core import GET_START_LOCATION, Action
+from core import GET_START_LOCATION, Action, State
 
 class IntegratedPolicyIteration:
     def __init__(self, env: ObstacleCourseEnv, gamma=0.98):
@@ -21,11 +21,8 @@ class IntegratedPolicyIteration:
             for s in range(self.n_states):
                 v_old = self.V[s]
                 a = self.policy[s]
-                next_s, reward, done = self.env.preview_action(s, a)
-                if done:
-                    self.V[s] = reward
-                else:
-                    self.V[s] = reward + self.gamma * self.V[next_s]
+                # use expected return to handle stochastic traps (instead of preview every time)
+                self.V[s] = self._expected_return(s, a)
                 delta = max(delta, abs(v_old - self.V[s]))
 
             iteration += 1
@@ -42,11 +39,7 @@ class IntegratedPolicyIteration:
             action_values = np.zeros(self.n_actions)
 
             for a in range(self.n_actions):
-                next_s, reward, done = self.env.preview_action(s, a)
-                if done:
-                    action_values[a] = reward
-                else:
-                    action_values[a] = reward + self.gamma * self.V[next_s]
+                action_values[a] = self._expected_return(s, a)
 
             best_action = np.argmax(action_values)
             self.policy[s] = best_action
@@ -54,6 +47,37 @@ class IntegratedPolicyIteration:
                 policy_stable = False
 
         return policy_stable
+    
+    def _expected_return(self, state_idx: int, action_idx: int) -> float:
+        """
+        Compute E[ R + gamma * V(S') | s, a ] using trap_death_prob.
+        """
+        state = self.env._obs_to_state(state_idx)
+        if state.is_terminal():
+            return 0.0
+        action_enum = self.env.ACTION_MAP[action_idx]
+        reward_no_trap = state.get_reward(action_enum)
+        # always die due to obstacle
+        if reward_no_trap == 0:
+            return 0.0
+        _, new_col = state._update_location(state.player_col, action_enum)
+
+        # Survival next state (trap does not trigger)
+        next_state_survive = State(state.time_index + 1, new_col)
+        next_idx_survive = self.env._state_to_obs(next_state_survive)
+
+        # Probability of trap killing agent in this slice
+        if new_col == state.trap_col:
+            p_trap = state.trap_prob
+        else:
+            p_trap = 0.0
+
+        # Expected value:
+        #   with prob p_trap → terminal, reward 0, V=0
+        #   with prob (1 - p_trap) → reward = 1, then continue from next_idx_survive
+        expected = (1.0 - p_trap) * (reward_no_trap + self.gamma * self.V[next_idx_survive])
+
+        return expected
 
     def run(self, max_iterations=100, eval_theta=1e-6, verbose=True):
         for iteration in range(max_iterations):

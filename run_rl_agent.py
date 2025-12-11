@@ -58,7 +58,6 @@ def run_rl_on_map(game_map, trap_cols=None, trap_prob=0.3, gamma=0.98, visualize
         'success': results['success'],
         'total_reward': results['total_reward'],
         'steps': results['steps'],
-        'locations': [l[1] for l in locations]
     }
 
 
