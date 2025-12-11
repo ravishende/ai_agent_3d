@@ -2,7 +2,7 @@
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
-from core import State, Action, INIT_GAME, GET_START_LOCATION
+from core import State, Action, GET_START_LOCATION
 
 
 class ObstacleCourseEnv(gym.Env):

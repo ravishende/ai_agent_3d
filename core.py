@@ -90,12 +90,12 @@ class State:
     We don't need the row because the player is always standing before the next slice comes (row=1)
     If trap_col is -1, there is no trap.
     """
-    def __init__(self, time_index:int, player_col:int, trap_prob:float=_TRAP_PROB):
+    def __init__(self, time_index:int, player_col:int):
         self.time_index: int = time_index
         self.player_col: int = player_col
         self.grid: np.ndarray | None = GRID_AT(time_index)
         self.trap_col: int = TRAP_AT(time_index)
-        self.trap_prob: float = trap_prob if self.trap_col != -1 else 0
+        self.trap_prob: float = _TRAP_PROB if self.trap_col != -1 else 0
 
     def is_terminal(self) -> bool:
         """Returns True if no more grids or the grid is None -> terminal state."""

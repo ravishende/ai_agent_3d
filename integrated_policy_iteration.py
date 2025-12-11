@@ -32,7 +32,7 @@ class IntegratedPolicyIteration:
             if delta < theta:
                 break
 
-        return iteration
+        return iteration, delta
 
     def policy_improvement(self):
         policy_stable = True
@@ -58,9 +58,9 @@ class IntegratedPolicyIteration:
     def run(self, max_iterations=100, eval_theta=1e-6, verbose=True):
         for iteration in range(max_iterations):
 
-            eval_iters = self.policy_evaluation(theta=eval_theta)
+            eval_iters, delta = self.policy_evaluation(theta=eval_theta)
             if verbose and iteration % 5 == 0:
-                print(f"Iteration {iteration}: Policy evaluation converged in {eval_iters} steps")
+                print(f"Iteration {iteration}: Policy evaluation converged in {eval_iters} steps ({delta=})")
 
             policy_stable = self.policy_improvement()
             if policy_stable:
