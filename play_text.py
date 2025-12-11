@@ -10,7 +10,7 @@ def play_text(game_map, print_moves=False, difficulty="medium"):
     """
     INIT_GAME(game_map)
 
-    state = State(time_index=0, player_location=GET_START_LOCATION())
+    state = State(time_index=0, player_col=GET_START_LOCATION()[1])
     moves = []
     total_reward = 0
     total_moves = 0
@@ -25,7 +25,7 @@ def play_text(game_map, print_moves=False, difficulty="medium"):
             print(f"{len(newest_n_grids) - i})\n{grid}\n")
         # print player
         for _ in range(2):
-            print(" "*2 + " "*2*state.player_location[1] + "*")
+            print(" "*2 + " "*2*state.player_col + "*")
         move = input("Choose Move (l, r, j, d, s): ")
         moves.append(move)
         action = str_to_action(move)

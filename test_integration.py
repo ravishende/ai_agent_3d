@@ -6,6 +6,7 @@ from maps import maps
 from gymnasium_env import ObstacleCourseEnv
 from integrated_policy_iteration import IntegratedPolicyIteration, solve_map
 from core import Action, INIT_GAME
+import traceback
 
 
 def test_environment():
@@ -29,7 +30,7 @@ def test_environment():
     print(f"  Initial observation: {obs}")
     
     # Test step
-    action = 4  # STAY
+    action = 3  # Duck
     obs, reward, terminated, truncated, info = env.step(action)
     print(f"\n✓ Step executed")
     print(f"  Action: {action} (STAY)")
@@ -117,22 +118,22 @@ def test_state_encoding():
     
     # Test a few states
     test_states = [
-        (0, 1, 1),  # Start
-        (1, 0, 2),  # Jump right
-        (2, 2, 0),  # Duck left
+        (0, 1),  # Start
+        (1, 2),  # right
+        (2, 0),  # left
     ]
     
-    for t, row, col in test_states:
+    for t, col in test_states:
         from core import State
-        state = State(t, (row, col))
+        state = State(t, col)
         obs = env._state_to_obs(state)
         decoded = env._obs_to_state(obs)
         
         match = (decoded.time_index == t and 
-                decoded.player_location == (row, col))
+                decoded.player_col == col)
         
         status = "✓" if match else "✗"
-        print(f"{status} State ({t}, {row}, {col}) → obs {obs} → State ({decoded.time_index}, {decoded.player_location})")
+        print(f"{status} State ({t}, {col}) → obs {obs} → State ({decoded.time_index}, {decoded.player_col})")
     
     print("\n" + "="*60)
     print("State encoding tests PASSED ✓")
@@ -157,7 +158,6 @@ def main():
         
     except Exception as e:
         print(f"\n✗ TEST FAILED: {e}")
-        import traceback
         traceback.print_exc()
 
 
