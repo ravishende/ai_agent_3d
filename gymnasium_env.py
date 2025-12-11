@@ -122,7 +122,7 @@ class ObstacleCourseEnv(gym.Env):
 
         return {
             'time_index': t,
-            'player_col': col,
+            'position': col,
             'grid': state.grid
         }
 
