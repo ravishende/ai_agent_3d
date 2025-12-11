@@ -3,7 +3,8 @@ import numpy as np
 from typing import Iterator, List, Set
 
 class MapGenerator:
-    def __init__(self, n_cols=7):
+    def __init__(self, n_cols:int=7):
+        assert n_cols > 0 and isinstance(n_cols, int), "n_cols must be a positive integer"
         # Dimensions
         self.ROWS = 3
         self.COLS = n_cols
@@ -45,9 +46,13 @@ class MapGenerator:
         # Reset to middle lane
         self.valid_cols_prev = {self.COLS // 2}
 
-    def generate_step(self, difficulty = "medium") -> np.ndarray:
-        """ Generates exactly ONE single valid time-slice (3xN) based on the previous state """
-
+    def generate_step(self, trap_spawn_prob=0.5, difficulty = "medium") -> tuple[np.ndarray, int]:
+        """ 
+        Generates single valid time-slice (3xN) and trap_col based on the previous state.
+        trap_col is -1 if there is no trap.
+        """
+        msg = "trap_spawn_prob must be between 0 and 1 inclusive"
+        assert 0 <= trap_spawn_prob <= 1, msg
         if difficulty =="easy":
             obs_prob = 0.15
         elif difficulty == "medium":
@@ -59,6 +64,7 @@ class MapGenerator:
 
         valid_grid_found = False
         attempts = 0
+        trap_col = -1
         final_grid = np.zeros((self.ROWS,self.COLS), dtype=int)
 
         while not valid_grid_found and attempts <100:
@@ -108,35 +114,52 @@ class MapGenerator:
                 final_grid = candidate_grid
                 self.valid_cols_prev = valid_cols_next
                 valid_grid_found = True
+                # Add in trap if there is more than one solution col
+                # Does NOT guarantee a full map solution can avoid traps --> best policy can fail
+                # if it did guarantee that, then traps could be replaced entirely with obstacles
+                if trap_spawn_prob > 0 and len(valid_cols_next) > 1:
+                    if random.random() < trap_spawn_prob:
+                        trap_col = random.choice(list(valid_cols_next))
+
             else:
                 attempts += 1
 
         if not valid_grid_found:
             final_grid = np.zeros((self.ROWS, self.COLS), dtype=int)
 
-        return final_grid
+        return final_grid, trap_col
 
-    def infinite_track(self, difficulty="medium") -> Iterator[np.ndarray]:
-        """Yields 3xN grids one by one FOREVER."""
+    def infinite_track(self, trap_spawn_prob=0.5, difficulty="medium") -> Iterator[tuple[np.ndarray, int]]:
+        """Yields 3xN grids and trap columns one by one FOREVER."""
         self.reset()
         # Whenever called, give a new slice
         while True:
-            yield self.generate_step(difficulty)
+            yield self.generate_step(trap_spawn_prob, difficulty)
 
-    def generate_track(self, timesteps, difficulty="medium") -> List[np.ndarray]:
-        """Generates a fixed length track list."""
+    def generate_track(self, timesteps, trap_spawn_prob=0.5, difficulty="medium") -> tuple[List[np.ndarray], List[int]]:
+        """Generates a fixed length track list and list of trap cols.
+        Returns:
+            (track, trap_cols): track and list of trap columns, both indexed at time t. A trap col of -1 indicates no trap at time t
+        """
         self.reset()
         track = []
+        trap_cols = []
         for _ in range(timesteps - 1):
-            track.append(self.generate_step(difficulty))
-        return track
+            grid, trap_col = self.generate_step(trap_spawn_prob, difficulty)
+            track.append(grid)
+            trap_cols.append(trap_col)
+        return track, trap_cols
 
 # --- Example Usage for Testing ---
-if __name__ == "__main__":
+def main():
     # Test with a wider map (e.g., 9 lanes)
     WIDTH_N = 9
     generator = MapGenerator(n_cols=WIDTH_N)
     print(f"Testing generate_step with {WIDTH_N} lanes:")
     generator.reset()
     for i in range(3):
-        print(f"Slice {i}: \n{generator.generate_step(difficulty="expert")}")
+        grid, trap_col = generator.generate_step(trap_spawn_prob=0.5, difficulty="expert")
+        print(f"Slice {i}: \ntrap_col: {trap_col} \ngrid: \n{grid}")
+
+if __name__ == "__main__":
+    main()

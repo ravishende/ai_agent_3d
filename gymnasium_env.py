@@ -24,7 +24,7 @@ class ObstacleCourseEnv(gym.Env):
         super().__init__()
 
         self.game_map = game_map
-        INIT_GAME(game_map)
+        # INIT_GAME_MAP does not need to be called because it has already been initialized at this point in integrated_policy_iteration.py
 
         self.num_timesteps = len(game_map)
         self.num_rows = 3
