@@ -17,9 +17,15 @@ Sample output: `31.07s user 0.18s system 99% cpu 31.476 total`
 | 3x11x1000 | `2:21.50 total`  |  `53.337 total`   |    2.65 |
 | 3x5x1000  | `1:47.60 total`  |  `31.476 total`   |    3.42 |
 
-## Proposed Optimizations
-
 ### Don't allow agent to use STAY action
+
+| Map       | Pre-optimization | Post-optimization | Speedup |
+| :-------- | :--------------: | :---------------: | ------: |
+| 3x11x100  |  `1.247 total`   |   `1.039 total`   |    1.20 |
+| 3x11x1000 |  `53.337 total`  |  `45.312 total`   |    1.69 |
+| 3x5x1000  |  `31.476 total`  |  `26.371 total`   |    1.19 |
+
+## Proposed Optimizations
 
 ### Change map slices to be bitmpas instead of numpy arrays
 

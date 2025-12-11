@@ -18,7 +18,7 @@ class ObstacleCourseEnv(gym.Env):
         4: Action.STAY
     }
 
-    ACTION_TO_IDX = {v: k for k, v in ACTION_MAP.items()}
+    ACTION_TO_IDX = {v: k for k, v in ACTION_MAP.items() if k != 4}  # don't use STAY action
 
     def __init__(self, game_map: list[np.ndarray]):
         super().__init__()

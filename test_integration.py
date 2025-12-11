@@ -30,7 +30,7 @@ def test_environment():
     print(f"  Initial observation: {obs}")
     
     # Test step
-    action = 4  # STAY
+    action = 3  # Duck
     obs, reward, terminated, truncated, info = env.step(action)
     print(f"\n✓ Step executed")
     print(f"  Action: {action} (STAY)")
