@@ -97,17 +97,13 @@ def main():
         verbose=not args.quiet
     )
 
-    # if not args.quiet:
-    if True:
+    if not args.quiet:
         print("\n" + "="*60)
         print("FINAL ACTION SEQUENCE")
         print("="*60)
         print(" → ".join(results['action_names']))
         print()
 
-    print("trap columns:", trap_cols)
-    print("start column:", args.width//2)
-    print("player locations (columns):", results['locations'])
 
 
 def test_all_maps():
