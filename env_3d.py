@@ -2,15 +2,22 @@
 Visualizes a map and player.
 Player lives at X=0, fixed relative to camera, while map moves towards them (decreasing x)
 Player can move in the Y and Z axis for actions of JUMP/DUCK and LEFT/RIGHT respectivelly
+The view is of a YZ plane, with X extending into the distance. (Y is up, Z is right)
 """
-
 import pygame
+import random
 from pygame.locals import DOUBLEBUF, OPENGL, QUIT
 from OpenGL.GL import *
 from OpenGL.GLU import *
 import numpy as np
 from maps import maps
 from core import INIT_START_LOCATION, GET_START_LOCATION
+
+# --------------------- Colors ----------------------
+GREEN = (0.2, 0.8, 0.3)
+RED = (0.9, 0.2, 0.2)
+BLUE = (0.2, 0.2, 0.9)
+BLACK = (0.0, 0.0, 0.0)
 
 # ------------------ Cube geometry ------------------
 
@@ -45,9 +52,8 @@ EDGES = [
 
 def _draw_cube_outline(size=1.0):
     """Draw just the black outline of a cube with given edge length."""
-    glColor3f(0.0, 0.0, 0.0)  # black
+    glColor3f(*BLACK)
     glLineWidth(2.0)
-
     glBegin(GL_LINES)
     for e in EDGES:
         for idx in e:
@@ -90,7 +96,7 @@ def _grid_to_world(row_index, col_index, cube_size, num_rows=3):
     z = col_index * cube_size
     return y, z
 
-# ------------------ Floor rendering ------------------ 
+# ------------------ Floor rendering ------------------
 
 def _draw_floor(map_length, map_width=3, cube_size=1.0, spacing=1.0, color=(0.5,0.5,0.5)):
     """Draw a floor of the map for the players and obstacles to rest on
@@ -145,7 +151,7 @@ def _draw_floor(map_length, map_width=3, cube_size=1.0, spacing=1.0, color=(0.5,
 
 # ------------------ Lane rendering ------------------
 
-def _draw_lane_from_slices(slices, cube_size=1.0, spacing=1.0, num_rows=3):
+def _draw_lane_from_slices(slices, trap_cols, cube_size=1.0, spacing=1.0, num_rows=3):
     """
     slices: list of 3xN numpy arrays with 0/1 values.
     Each array is a cross-section in the Y-Z plane.
@@ -192,9 +198,21 @@ def _draw_lane_from_slices(slices, cube_size=1.0, spacing=1.0, num_rows=3):
                     # draw cube
                     glPushMatrix()
                     glTranslatef(x, y, z)
-                    color = (0.2, 0.8, 0.3)  # mono green-ish
+                    color = GREEN
                     _draw_colored_cube_with_outline(color, cube_size)
                     glPopMatrix()
+        # draw trap (if it exists)
+        if trap_cols[i] == -1:
+            continue
+        z = trap_cols[i] * cube_size
+        trap_display_length = 1
+        if spacing > trap_display_length * cube_size:
+            trap_display_length = 2
+        for i in range(trap_display_length + 1):
+            glPushMatrix()
+            glTranslatef(x - cube_size*i, 0.0, z)
+            _draw_trap(cube_size)
+            glPopMatrix()
 
     glPopMatrix()  # pop lane-centering transform
 
@@ -236,11 +254,11 @@ def _get_lane_x_start(cube_size, spacing, steps_back=1):
     step = cube_size + spacing
     return spacing + step * steps_back
 
-# ------------------ Shadows ------------------
+# ------------------ Shadows and traps ------------------
 
-def _draw_shadow(cube_size):
+def _draw_square(cube_size:float, color:tuple[float, float, float]):
     """
-    Draw a simple flat shadow square on the floor (for beneath floating cube).
+    Draw a simple flat square on the floor with a given color
     Assumes already in correct XZ-coordinates, with y=0 at the center of the bottom row cubes.
     """
     # Slightly below the bottom row cube center, just above the floor
@@ -250,7 +268,7 @@ def _draw_shadow(cube_size):
 
     glEnable(GL_POLYGON_OFFSET_FILL)
     glPolygonOffset(-2.0, -2.0)  # push it in front of the floor to avoid z-fighting
-    glColor3f(0.0, 0.0, 0.0)     # solid black
+    glColor3f(*color)
 
     glBegin(GL_QUADS)
     glVertex3f(-half_x, shadow_y, -half_z)
@@ -261,12 +279,28 @@ def _draw_shadow(cube_size):
 
     glDisable(GL_POLYGON_OFFSET_FILL)
 
+def _draw_shadow(cube_size):
+    """
+    Draw a simple flat shadow square on the floor (for beneath floating cube).
+    Assumes already in correct XZ-coordinates, with y=0 at the center of the bottom row cubes.
+    """
+    _draw_square(cube_size, BLACK)
+
+def _draw_trap(cube_size):
+    """
+    Draw a simple flat trap square on the floor.
+    Assumes already in correct XZ-coordinates, with y=0 at the center of the bottom row cubes.
+    """
+    _draw_square(cube_size, RED)
 
 # ------------------ Main loop ------------------
 
 def visualize(
-        game_map:list[np.ndarray], player_locations:list[tuple[int,int]],
-        cube_size: float = 2.0, spacing: float = 40.0):
+        game_map:list[np.ndarray],
+        player_locations:list[tuple[int,int]],
+        trap_cols:list[int] | None = None,
+        cube_size: float = 2.0,
+        spacing: float = 40.0):
     """Given a game map and during-action payer locations, visualize a character moving through the map"""
     slices = game_map  # game map
     cols = slices[0].shape[1]
@@ -344,7 +378,7 @@ def visualize(
 
         # ---- Draw player ----
         glPushMatrix()
-        player_color = (0.9, 0.2, 0.2)  # reddish color
+        player_color = BLUE
         # first cube: top half/torso of player
         player_y, player_z = _grid_to_world(player_pos[0], player_pos[1], cube_size)
         # shift in Z so middle column is around z = 0
@@ -370,7 +404,7 @@ def visualize(
         glPushMatrix()
         # move entire lane along -X (toward camera)
         glTranslatef(lane_x_position, 0.0, 0.0)
-        _draw_lane_from_slices(slices, cube_size, spacing)
+        _draw_lane_from_slices(slices, trap_cols, cube_size, spacing)
         glPopMatrix()
 
         pygame.display.flip()
@@ -380,9 +414,14 @@ def visualize(
 def main():
     game_map = maps[1]
     locations = [(1, 2), (0, 2), (2, 2), (1, 1), (1, 1), (2, 1), (1, 1), (1, 2)]
+    trap_cols = [random.randint(0,2) for _ in range(len(game_map))]
     cube_size = 2.0
     spacing = 40.0  # how far apart slices are
-    visualize(game_map, locations, cube_size=cube_size, spacing=spacing)
+    visualize(game_map=game_map,
+              player_locations=locations,
+              trap_cols=trap_cols,
+              cube_size=cube_size,
+              spacing=spacing)
 
 if __name__ == "__main__":
     main()

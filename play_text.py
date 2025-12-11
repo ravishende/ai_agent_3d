@@ -1,14 +1,17 @@
 """
 Brainstorming how States and Actions would work
 """
+import random
 from core import State, Action, GET_START_LOCATION, INIT_GAME, VIEW_GRIDS
 from maps import maps
 
-def play_text(game_map, print_moves=False, difficulty="medium"):
+def play_text(game_map, trap_cols=None, trap_death_prob=0.3, print_moves=False, difficulty="medium"):
     """
     Play a text based version of the game
     """
-    INIT_GAME(game_map)
+    if trap_cols is None:
+        trap_cols = [-1 for _ in range(len(game_map))]
+    INIT_GAME(game_map, trap_cols, trap_death_prob)
 
     state = State(time_index=0, player_col=GET_START_LOCATION()[1])
     moves = []
@@ -20,9 +23,18 @@ def play_text(game_map, print_moves=False, difficulty="medium"):
         # print map
         difficulties = ["easy", "medium", "hard", "expert"]
         n_grids = 2 + difficulties.index(difficulty)  # for harder modes, show further into the future
-        newest_n_grids = VIEW_GRIDS(t=state.time_index, n_grids=n_grids)[::-1]
+        newest_n_grids, newest_n_traps = VIEW_GRIDS(t=state.time_index, n_grids=n_grids)
+        # reverse order of lists so they display closest first
+        newest_n_grids = newest_n_grids[::-1]
+        newest_n_traps = newest_n_traps[::-1]
         for i, grid in enumerate(newest_n_grids):
-            print(f"{len(newest_n_grids) - i})\n{grid}\n")
+            # grid
+            print(f"{len(newest_n_grids) - i})\n{grid}")
+            # trap
+            trap_col = newest_n_traps[i]
+            if trap_col != -1:
+                print(" "*2 + " "*2*trap_col + "x")
+            print("\n")
         # print player
         for _ in range(2):
             print(" "*2 + " "*2*state.player_col + "*")
@@ -64,6 +76,16 @@ def str_to_action(move:str):
     if move not in actions:
         raise KeyError(f"Chosen move not in accepted moves: {list(actions.keys())}")
     return actions[move]
-    
+
+def main():
+    print("="*50)
+    print("run through an obstacle course, avoiding obstacles (1) and trying to avoid traps (x).")
+    print("You are 2 tall when standing, and 1 tall when jumping or ducking.")
+    print("Grids are numbered in closeness to you. Good luck!")
+    print("="*50)
+    game_map = maps[1]
+    trap_cols = [random.randint(0, 2) for _ in range(len(game_map))]
+    play_text(game_map, trap_cols, print_moves=True)
+
 if __name__ == "__main__":
-    play_text(maps[1], print_moves=True)
+    main()

@@ -2,7 +2,7 @@
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
-from core import State, Action, INIT_GAME, GET_START_LOCATION
+from core import State, Action, GET_START_LOCATION
 
 
 class ObstacleCourseEnv(gym.Env):
@@ -24,7 +24,7 @@ class ObstacleCourseEnv(gym.Env):
         super().__init__()
 
         self.game_map = game_map
-        INIT_GAME(game_map)
+        # INIT_GAME_MAP does not need to be called because it has already been initialized at this point in integrated_policy_iteration.py
 
         self.num_timesteps = len(game_map)
         self.num_rows = 3
