@@ -27,7 +27,7 @@ Sample output: `31.07s user 0.18s system 99% cpu 31.476 total`
 
 ## Proposed Optimizations
 
-### Change map slices to be bitmpas instead of numpy arrays
+### Change map slices to be bitmaps instead of numpy arrays
 
 | Map       | Pre-optimization | Post-optimization | Speedup |
 | :-------- | :--------------: | :---------------: | ------: |
