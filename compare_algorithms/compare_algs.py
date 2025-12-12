@@ -11,6 +11,7 @@ from maps import maps
 from map_generator import MapGenerator
 from run_rl_agent import train_rl
 from dfs import dfs_allow_traps, dfs_avoid_traps
+from q_learning import q_learning
 from core import INIT_GAME, GET_START_LOCATION, State
 
 pd.set_option("display.max_columns", None)
@@ -47,7 +48,7 @@ def run_and_get_results(algorithm, game_map, trap_cols, start_state, n_runs, alg
     }
     return run_stats
 
-def main(map_width, map_length, difficulty, trap_death_prob, trap_spawn_prob, n_runs=100):
+def main(map_width, map_length, difficulty, trap_death_prob, trap_spawn_prob, n_runs=100, n_maps=5):
     map_generator = MapGenerator(n_cols=map_width)
     game_map, trap_cols = map_generator.generate_track(
         map_length, trap_spawn_prob=trap_spawn_prob, difficulty=difficulty)
@@ -79,10 +80,18 @@ def main(map_width, map_length, difficulty, trap_death_prob, trap_spawn_prob, n_
         n_runs=n_runs,
         alg_name="dfs_allow_traps"
     ))
+    alg_run_stats.append(run_and_get_results(
+        algorithm=q_learning,
+        game_map=game_map,
+        trap_cols=trap_cols,
+        start_state=start_state,
+        n_runs=n_runs,
+        alg_name="q_learning"
+    ))
     
     df = pd.DataFrame(alg_run_stats)
     print(df)
-    df.to_csv("alg_run_stats.csv", index=False)
+    df.to_csv("alg_run_stats3.csv", index=False)
 
 
 def get_args():
