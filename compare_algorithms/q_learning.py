@@ -22,11 +22,7 @@ def env_step(state: State, action: Action, trap_cols, game_map):
     if state._collides((new_row, new_col), state.grid):
         return None, 0.0, True
 
-    if trap_cols[state.time_index] != -1 and new_col == trap_cols[state.time_index]:
-        return None, 1-state.trap_prob, True
-
-    next_state = State(state.time_index + 1, new_col)
-    reward = 1.0
+    reward, next_state = state.move(action)
     done = next_state.is_terminal() or next_state.time_index >= len(game_map) - 1
     return next_state, reward, done
 
@@ -69,7 +65,7 @@ def q_learning(
     **kwargs
 ):
     if episodes == -1:
-        episodes = len(game_map) * 200
+        episodes = len(game_map) * 1000
     q: Dict[QKey, float] = {}
     width = game_map[0].shape[1]
 
