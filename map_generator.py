@@ -144,7 +144,7 @@ class MapGenerator:
         self.reset()
         track = []
         trap_cols = []
-        for _ in range(timesteps - 1):
+        for _ in range(timesteps):
             grid, trap_col = self.generate_step(trap_spawn_prob, difficulty)
             track.append(grid)
             trap_cols.append(trap_col)
