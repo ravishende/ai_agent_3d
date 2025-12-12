@@ -9,6 +9,9 @@ from process_actions import get_locations_list
 from env_3d import visualize
 from core import INIT_GAME
 
+def train_rl(game_map, trap_cols=None, gamma=0.98):
+    optimal_actions, _ = solve_map(game_map, gamma=gamma, verbose=False)
+    return optimal_actions
 
 def run_rl_on_map(game_map, trap_cols=None, trap_prob=0.3, gamma=0.98, visualize_result=False, 
                   cube_size=2.0, spacing=40.0, verbose=True):
