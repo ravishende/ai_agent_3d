@@ -1,0 +1,27 @@
+{
+  "difficulty": [
+    "easy",
+    "medium",
+    "hard"
+  ],
+  "convergence_iterations": [
+    3,
+    3,
+    4
+  ],
+  "total_policy_changes": [
+    72,
+    65,
+    72
+  ],
+  "final_mean_value": [
+    6.343602408783537,
+    6.182210184692607,
+    4.735354838317601
+  ],
+  "success_rate": [
+    1.0,
+    1.0,
+    1.0
+  ]
+}

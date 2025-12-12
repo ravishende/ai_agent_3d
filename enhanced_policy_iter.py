@@ -1,6 +1,6 @@
 import numpy as np
 from gymnasium_env import ObstacleCourseEnv
-from core import GET_START_LOCATION, Action, State
+from core import GET_START_LOCATION, Action
 
 class IntegratedPolicyIteration:
     def __init__(self, env: ObstacleCourseEnv, gamma=0.98):
@@ -13,7 +13,7 @@ class IntegratedPolicyIteration:
         if hasattr(env, 'terminal_state_idx'):
             self.policy[env.terminal_state_idx] = 4
         
-        # Metrics tracking for visualization
+        # Metrics tracking
         self.metrics = {
             'iteration': [],
             'max_value_change': [],
@@ -22,8 +22,7 @@ class IntegratedPolicyIteration:
             'eval_iterations': [],
             'mean_value': [],
             'max_value': [],
-            'policy_stability': [],
-            'eval_delta': []  # Track convergence of policy evaluation
+            'policy_stability': []
         }
 
     def policy_evaluation(self, theta=1e-6, max_iterations=1000):
@@ -37,8 +36,11 @@ class IntegratedPolicyIteration:
             for s in range(self.n_states):
                 v_old = self.V[s]
                 a = self.policy[s]
-                # use expected return to handle stochastic traps (instead of preview every time)
-                self.V[s] = self._expected_return(s, a)
+                next_s, reward, done = self.env.preview_action(s, a)
+                if done:
+                    self.V[s] = reward
+                else:
+                    self.V[s] = reward + self.gamma * self.V[next_s]
                 
                 change = abs(v_old - self.V[s])
                 iteration_changes.append(change)
@@ -49,7 +51,7 @@ class IntegratedPolicyIteration:
             if delta < theta:
                 break
 
-        return iteration, delta, value_changes
+        return iteration, value_changes
 
     def policy_improvement(self):
         policy_stable = True
@@ -60,7 +62,11 @@ class IntegratedPolicyIteration:
             action_values = np.zeros(self.n_actions)
 
             for a in range(self.n_actions):
-                action_values[a] = self._expected_return(s, a)
+                next_s, reward, done = self.env.preview_action(s, a)
+                if done:
+                    action_values[a] = reward
+                else:
+                    action_values[a] = reward + self.gamma * self.V[next_s]
 
             best_action = np.argmax(action_values)
             self.policy[s] = best_action
@@ -69,49 +75,18 @@ class IntegratedPolicyIteration:
                 num_changes += 1
 
         return policy_stable, num_changes
-    
-    def _expected_return(self, state_idx: int, action_idx: int) -> float:
-        """
-        Compute E[ R + gamma * V(S') | s, a ] using trap_death_prob.
-        """
-        state = self.env._obs_to_state(state_idx)
-        if state.is_terminal():
-            return 0.0
-        action_enum = self.env.ACTION_MAP[action_idx]
-        reward_no_trap = state.get_reward(action_enum)
-        # always die due to obstacle
-        if reward_no_trap == 0:
-            return 0.0
-        _, new_col = state._update_location(state.player_col, action_enum)
-
-        # Survival next state (trap does not trigger)
-        next_state_survive = State(state.time_index + 1, new_col)
-        next_idx_survive = self.env._state_to_obs(next_state_survive)
-
-        # Probability of trap killing agent in this slice
-        if hasattr(state, 'trap_col') and new_col == state.trap_col:
-            p_trap = state.trap_prob
-        else:
-            p_trap = 0.0
-
-        # Expected value:
-        #   with prob p_trap → terminal, reward 0, V=0
-        #   with prob (1 - p_trap) → reward = 1, then continue from next_idx_survive
-        expected = (1.0 - p_trap) * (reward_no_trap + self.gamma * self.V[next_idx_survive])
-
-        return expected
 
     def run(self, max_iterations=100, eval_theta=1e-6, verbose=True):
         for iteration in range(max_iterations):
             # Policy Evaluation
-            eval_iters, delta, value_changes = self.policy_evaluation(theta=eval_theta)
+            eval_iters, value_changes = self.policy_evaluation(theta=eval_theta)
             
             # Calculate metrics
             max_value_change = np.max(np.abs(self.V))
             mean_value_change = np.mean(value_changes) if value_changes else 0
             
             if verbose and iteration % 5 == 0:
-                print(f"Iteration {iteration}: Policy evaluation converged in {eval_iters} steps (delta={delta:.6f})")
+                print(f"Iteration {iteration}: Policy evaluation converged in {eval_iters} steps")
 
             # Policy Improvement
             policy_stable, num_changes = self.policy_improvement()
@@ -125,7 +100,6 @@ class IntegratedPolicyIteration:
             self.metrics['mean_value'].append(np.mean(self.V))
             self.metrics['max_value'].append(np.max(self.V))
             self.metrics['policy_stability'].append(1 - (num_changes / self.n_states))
-            self.metrics['eval_delta'].append(delta)
             
             if policy_stable:
                 if verbose:
