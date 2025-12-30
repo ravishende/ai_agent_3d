@@ -27,10 +27,10 @@ Sample output: `31.07s user 0.18s system 99% cpu 31.476 total`
 
 ## Proposed Optimizations
 
-### Change map slices to be bitmaps instead of numpy arrays
+### Change map slices to be bitmaps instead of numpy arrays (in map generation and usage)
 
 | Map       | Pre-optimization | Post-optimization | Speedup |
 | :-------- | :--------------: | :---------------: | ------: |
-| 3x11x100  |        ``        |        ``         |         |
-| 3x11x1000 |        ``        |        ``         |         |
-| 3x5x1000  |        ``        |        ``         |         |
+| 3x11x100  |  `1.051 total`   |   `0.786 total`   |    1.34 |
+| 3x11x1000 | `1:00.92 total`  |   `6.549 total`   |    9.30 |
+| 3x5x1000  |  `21.172 total`  |   `3.354 total`   |    6.31 |

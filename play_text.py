@@ -11,14 +11,17 @@ def play_text(game_map, trap_cols=None, trap_death_prob=0.3, print_moves=False, 
     """
     if trap_cols is None:
         trap_cols = [-1 for _ in range(len(game_map))]
-    INIT_GAME(game_map, trap_cols, trap_death_prob)
+    INIT_GAME(
+        game_map=game_map,
+        trap_cols=trap_cols,
+        trap_death_prob=trap_death_prob)
 
     state = State(time_index=0, player_col=GET_START_LOCATION()[1])
     moves = []
     total_reward = 0
     total_moves = 0
     last_reward = 0
-    while state.grid is not None:
+    while state.grid_bitmap is not None:
         print("\n\n")
         # print map
         difficulties = ["easy", "medium", "hard", "expert"]

@@ -1,6 +1,9 @@
 import random
 import numpy as np
 from typing import Iterator, List, Set
+from bitmap_utils import create_funnel_pattern, create_random_grid, obstacle_at
+
+_BLOCKED_COL = 0b111
 
 class MapGenerator:
     def __init__(self, n_cols:int=7):
@@ -13,11 +16,15 @@ class MapGenerator:
         # State for generation: Tracks which columns the agent could validly be in
         self.valid_cols_prev: Set[int] = {start_col}
     
-    def check_standing_survival(self, column_slice):
-        """Checks if you can survive by standing in a column"""
-        return column_slice[1] == 0 and column_slice[2] == 0
+    def check_standing_survival(self, grid_bitmap:int, col:int):
+        """Checks if you can survive a grid by standing in a given column"""
+        stand_rows = (1, 2)
+        for row in stand_rows:
+            if obstacle_at(location=(row,col), grid_bitmap=grid_bitmap, map_width=self.COLS):
+                return False
+        return True
 
-    def check_survival(self, column_slice):
+    def check_survival(self, grid_bitmap:int, col:int):
         """
         Checks if a specific column configuration allows ANY valid posture.
         Returns True if the agent can survive in this column by Jumping, Ducking, or Standing.
@@ -25,13 +32,13 @@ class MapGenerator:
         # column_slice is [row0_val, row1_val, row2_val]
         
         # Check Jump (Agent is at Row 0)
-        can_jump = (column_slice[0] == 0)
+        can_jump = not obstacle_at(location=(0, col), grid_bitmap=grid_bitmap, map_width=self.COLS)
         
         # Check Stand (Agent is at Row 1 and 2)
-        can_stand = (column_slice[1] == 0 and column_slice[2] == 0)
+        can_stand = self.check_standing_survival(grid_bitmap, col)
         
         # Check Duck (Agent is at Row 2)
-        can_duck = (column_slice[2] == 0)
+        can_duck = not obstacle_at(location=(2, col), grid_bitmap=grid_bitmap, map_width=self.COLS)
         
         return can_jump or can_stand or can_duck
 
@@ -46,10 +53,16 @@ class MapGenerator:
         # Reset to middle lane
         self.valid_cols_prev = {self.COLS // 2}
 
-    def generate_step(self, trap_spawn_prob=0.5, difficulty = "medium") -> tuple[np.ndarray, int]:
+    def generate_step(self, trap_spawn_prob=0.5, difficulty = "medium") -> tuple[int, int]:
         """ 
-        Generates single valid time-slice (3xN) and trap_col based on the previous state.
+        Generates single valid grid_bitmap and trap_col based on the previous state.
         trap_col is -1 if there is no trap.
+        Parameters:
+            trap_spawn_prob: probability (0 to 1) of a trap being generated given conditions are met
+            difficulty: difficulty of the map
+        Returns:
+            (grid_bitmap, trap_col): the bitmap representation of the grid and the column of the trap 
+                * trap_col is -1 if there is no trap
         """
         msg = "trap_spawn_prob must be between 0 and 1 inclusive"
         assert 0 <= trap_spawn_prob <= 1, msg
@@ -65,10 +78,10 @@ class MapGenerator:
         valid_grid_found = False
         attempts = 0
         trap_col = -1
-        final_grid = np.zeros((self.ROWS,self.COLS), dtype=int)
+        final_grid_bitmap = 0
 
         while not valid_grid_found and attempts <100:
-            candidate_grid = np.zeros((self.ROWS,self.COLS), dtype=int)
+            candidate_grid_bitmap = 0
             # Dynamic Hard Mode Pattern (Works for any N width)
             # Creates a funnel by blocking all but one reachable column
             if difficulty in ("hard", "expert") and random.random() < 0.2:
@@ -82,16 +95,12 @@ class MapGenerator:
                     safe_col = self.COLS-2 # choose -2 so they still have to move from edge
 
                 # block all but chosen col
-                for col in range(self.COLS):
-                    if col == safe_col:
-                        continue
-                    candidate_grid[:, col] = 1
+                candidate_grid_bitmap = create_funnel_pattern(
+                    safe_col=safe_col, n_rows=self.ROWS, map_width=self.COLS)
             else:
-                # Random noise generation across all N columns
-                for r in range(self.ROWS):
-                    for c in range(self.COLS):
-                        if random.random() < obs_prob:
-                            candidate_grid[r][c] = 1
+                # Random noise generation across all squares
+                candidate_grid_bitmap = create_random_grid(
+                    obstacle_frequency=obs_prob, n_rows=self.ROWS, map_width=self.COLS)
 
             # Solvability Check
             valid_cols_next = set()
@@ -101,17 +110,14 @@ class MapGenerator:
                 curr_c = prev_c
                 other_reachable_cols = [col for col in possible_moves if col != prev_c]
                 # if any ducking/jumping/stayin in current column are survivable, add it
-                curr_col_slice = candidate_grid[:, curr_c]
-                if self.check_survival(curr_col_slice):
+                if self.check_survival(grid_bitmap=candidate_grid_bitmap, col=curr_c):
                     valid_cols_next.add(curr_c)
                 for move_c in other_reachable_cols:
-                    # Numpy slicing to extract the column at move_c
-                    col_slice = candidate_grid[:, move_c]
-                    if self.check_standing_survival(col_slice):
+                    if self.check_standing_survival(grid_bitmap=candidate_grid_bitmap, col=move_c):
                         valid_cols_next.add(move_c)
 
             if len(valid_cols_next) > 0:
-                final_grid = candidate_grid
+                final_grid_bitmap = candidate_grid_bitmap
                 self.valid_cols_prev = valid_cols_next
                 valid_grid_found = True
                 # Add in trap if there is more than one solution col
@@ -125,9 +131,10 @@ class MapGenerator:
                 attempts += 1
 
         if not valid_grid_found:
-            final_grid = np.zeros((self.ROWS, self.COLS), dtype=int)
+            # give a grid with no obstacles if no valid grid found
+            final_grid_bitmap = 0
 
-        return final_grid, trap_col
+        return final_grid_bitmap, trap_col
 
     def infinite_track(self, trap_spawn_prob=0.5, difficulty="medium") -> Iterator[tuple[np.ndarray, int]]:
         """Yields 3xN grids and trap columns one by one FOREVER."""
