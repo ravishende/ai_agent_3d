@@ -1,8 +1,6 @@
-# Completed and proposed optimizations
+# Completed Optimizations
 
-## Completed Optimizations
-
-### Only store player_col, not player_location for states
+## Only store player_col, not player_location for states
 
 Since each state represents where the player is in the reset stage before the next upcoming slice, the player will always be standing, therefore player_row will always be 1. So, instead of storing player_location of (1, player_col), we can just declare states with the player column.
 
@@ -17,7 +15,7 @@ Sample output: `31.07s user 0.18s system 99% cpu 31.476 total`
 | 3x11x1000 | `2:21.50 total`  |  `53.337 total`   |    2.65 |
 | 3x5x1000  | `1:47.60 total`  |  `31.476 total`   |    3.42 |
 
-### Don't allow agent to use STAY action
+## Don't allow agent to use STAY action
 
 | Map       | Pre-optimization | Post-optimization | Speedup |
 | :-------- | :--------------: | :---------------: | ------: |
@@ -25,9 +23,9 @@ Sample output: `31.07s user 0.18s system 99% cpu 31.476 total`
 | 3x11x1000 |  `53.337 total`  |  `45.312 total`   |    1.69 |
 | 3x5x1000  |  `31.476 total`  |  `26.371 total`   |    1.19 |
 
-## Proposed Optimizations
+## Change map slices to be bitmaps instead of numpy arrays (in map generation and usage)
 
-### Change map slices to be bitmaps instead of numpy arrays (in map generation and usage)
+Note: some of the speedup comes from map generation (generating grids, checking survivability). The speedup is not solely from reinforcement learning improvements (checking collisions, grid memory lookups, etc.). The previous optimizations did not speed up the map generation process, so their speedup is slightly understated.
 
 | Map       | Pre-optimization | Post-optimization | Speedup |
 | :-------- | :--------------: | :---------------: | ------: |
