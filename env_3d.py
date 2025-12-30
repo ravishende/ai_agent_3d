@@ -162,7 +162,7 @@ def _draw_lane_from_slices(slices, trap_cols, cube_size=1.0, spacing=1.0, num_ro
     if not slices:
         return
 
-    rows, cols = slices[0].shape
+    _, cols = slices[0].shape
 
     floor_color = (0.5, 0.5, 0.5)
 
@@ -184,7 +184,7 @@ def _draw_lane_from_slices(slices, trap_cols, cube_size=1.0, spacing=1.0, num_ro
     for i, grid in enumerate(slices):
         x = x_offset + i * step
 
-        for row in range(rows):
+        for row in range(num_rows):
             for col in range(cols):
                 if grid[row, col] == 1:
                     y = (num_rows - 1 - row) * cube_size

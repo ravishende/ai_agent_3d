@@ -25,10 +25,24 @@ Sample output: `31.07s user 0.18s system 99% cpu 31.476 total`
 
 ## Change map slices to be bitmaps instead of numpy arrays (in map generation and usage)
 
-Note: some of the speedup comes from map generation (generating grids, checking survivability). The speedup is not solely from reinforcement learning improvements (checking collisions, grid memory lookups, etc.). The previous optimizations did not speed up the map generation process, so their speedup is slightly understated.
+Note: Before this optimization, there was the introduction of traps to the codebase. Therefore, the command has changed to ignore traps.
+Command: `time python3 run_rl_agent.py --length=____ --width=____ --difficulty=hard --quiet --trap_spawn_prob=0`.
+
+There was not much noticeable speedup from this optimization due to the bottleneck not being memory lookups or insertions in grids. If the memory IO of numpy 2D arrays were more of a bottleneck, then this optimization may have been more useful. We do seem to see this more in the largest map: 3x11x1000 where the speedup is 1.28.
 
 | Map       | Pre-optimization | Post-optimization | Speedup |
 | :-------- | :--------------: | :---------------: | ------: |
-| 3x11x100  |  `1.051 total`   |   `0.786 total`   |    1.34 |
-| 3x11x1000 | `1:00.92 total`  |   `6.549 total`   |    9.30 |
-| 3x5x1000  |  `21.172 total`  |   `3.354 total`   |    6.31 |
+| 3x11x100  |  `1.074 total`   |   `1.095 total`   |    0.98 |
+| 3x11x1000 | `1:34.33 total`  |  `1:13.43 total`  |    1.28 |
+| 3x5x1000  |  `20.495 total`  |  `21.701 total`   |    0.94 |
+
+## Total Speedup
+
+Here is the speedup comparing the original (no optimzations) to all 3 optimizations being implemented.
+Note that, as with all previous optimization tables, the pre-optimization times are run immediately prior to the post-optimization by checking out previous commits. This way, factors of varying computer speeds by day/application are mitigated.
+
+| Map       | Pre-optimization | Post-optimization | Speedup |
+| :-------- | :--------------: | :---------------: | ------: |
+| 3x11x100  |  `2.903 total`   |   `1.095 total`   |    2.65 |
+| 3x11x1000 | `3:37.94 total`  |  `1:13.43 total`  |    2.97 |
+| 3x5x1000  | `1:47.60 total`  |  `1:03.68 total`  |    1.69 |

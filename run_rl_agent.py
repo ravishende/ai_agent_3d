@@ -8,6 +8,7 @@ from integrated_policy_iteration import solve_map
 from process_actions import get_locations_list
 from env_3d import visualize
 from core import INIT_GAME
+from bitmap_utils import game_map_bitmaps_to_arrays
 
 def train_rl(game_map, map_width, gamma=0.98):
     optimal_actions, _ = solve_map(game_map, map_width=map_width, gamma=gamma, verbose=False)
@@ -52,8 +53,12 @@ def run_rl_on_map(
     if visualize_result:
         if verbose:
             print("\nLaunching 3D visualization...")
-        locations = get_locations_list(optimal_actions, map_width=game_map[0].shape[1])
-        visualize(game_map=game_map,
+        locations = get_locations_list(optimal_actions, map_width=map_width)
+        # make sure game map is back to numpy arrays instead of bitmaps for visualization
+        game_map_arrays = game_map
+        if isinstance(game_map[0], int):
+            game_map_arrays = game_map_bitmaps_to_arrays(game_map, map_width=map_width)
+        visualize(game_map=game_map_arrays,
                   player_locations=locations,
                   trap_cols=trap_cols,
                   cube_size=cube_size,

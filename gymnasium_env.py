@@ -2,7 +2,7 @@ import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
 from core import State, Action, GET_START_LOCATION
-from bitmap_utils import array_to_bitmap
+from bitmap_utils import game_map_arrays_to_bitmaps
 
 
 class ObstacleCourseEnv(gym.Env):
@@ -25,15 +25,13 @@ class ObstacleCourseEnv(gym.Env):
 
         # convert game map to list of grid bitmaps if not already done.
         if isinstance(game_map[0], np.ndarray):
-            game_map = [array_to_bitmap(grid) for grid in game_map]
+            num_cols = game_map[0].shape[1]
+            game_map = game_map_arrays_to_bitmaps(game_map)
+        else:
+            map_width_msg = "if game_map is a list of bitmaps (ints), map_width must be specified"
+            assert num_cols is not None, map_width_msg
         self.game_map = game_map
         # INIT_GAME_MAP does not need to be called because it has already been initialized at this point in integrated_policy_iteration.py
-        map_width_msg = "if game_map is a list of bitmaps (ints), map_width must be specified"
-        if isinstance(game_map[0], int):
-            assert num_cols is not None, map_width_msg
-        elif num_cols is None:
-            num_cols = game_map[0].shape[1]
-        assert num_cols > 0, "num_cols (number of columns per grid) must be positive"
 
         self.num_timesteps = len(game_map)
         self.num_rows = 3
