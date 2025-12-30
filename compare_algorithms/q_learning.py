@@ -19,7 +19,7 @@ def env_step(state: State, action: Action, trap_cols, game_map):
         return state, 0.0, True
 
     new_row, new_col = state._update_location(state.player_col, action)
-    if state._collides((new_row, new_col), state.grid):
+    if state._collides((new_row, new_col), state.grid_bitmap):
         return None, 0.0, True
 
     reward, next_state = state.move(action)

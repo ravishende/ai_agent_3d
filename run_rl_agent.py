@@ -9,12 +9,13 @@ from process_actions import get_locations_list
 from env_3d import visualize
 from core import INIT_GAME
 
-def train_rl(game_map, trap_cols=None, gamma=0.98):
-    optimal_actions, _ = solve_map(game_map, gamma=gamma, verbose=False)
+def train_rl(game_map, map_width, gamma=0.98):
+    optimal_actions, _ = solve_map(game_map, map_width=map_width, gamma=gamma, verbose=False)
     return optimal_actions
 
-def run_rl_on_map(game_map, trap_cols=None, trap_prob=0.3, gamma=0.98, visualize_result=False, 
-                  cube_size=2.0, spacing=40.0, verbose=True):
+def run_rl_on_map(
+        game_map, map_width, trap_cols=None, trap_prob=0.3, gamma=0.98,  
+        visualize_result=False, cube_size=2.0, spacing=40.0, verbose=True):
     if verbose:
         print("="*60)
         print("REINFORCEMENT LEARNING AGENT")
@@ -23,9 +24,14 @@ def run_rl_on_map(game_map, trap_cols=None, trap_prob=0.3, gamma=0.98, visualize
         print(f"Discount factor (gamma): {gamma}")
         print()
 
-    INIT_GAME(game_map, trap_cols, trap_prob)
+    INIT_GAME(
+        game_map=game_map,
+        map_width=map_width,
+        trap_cols=trap_cols,
+        trap_death_prob=trap_prob)
     
-    optimal_actions, policy_iter = solve_map(game_map, gamma=gamma, verbose=verbose)
+    optimal_actions, policy_iter = solve_map(
+        game_map, map_width=map_width, gamma=gamma, verbose=verbose)
     
     results = policy_iter.evaluate_policy_on_map()
     
@@ -90,6 +96,7 @@ def main():
 
     results = run_rl_on_map(
         game_map,
+        map_width=args.width,
         trap_cols=trap_cols,
         trap_prob=args.trap_death_prob,
         gamma=args.gamma,
@@ -119,7 +126,7 @@ def test_all_maps():
         print(f"MAP {i} (Length: {len(game_map)} timesteps)")
         print('*'*70)
         
-        results = run_rl_on_map(game_map, verbose=True, visualize_result=False)
+        results = run_rl_on_map(game_map, map_width=game_map[0].shape[1], verbose=True, visualize_result=False)
         
         if results['success']:
             print(f"✓ Map {i}: SUCCESS")

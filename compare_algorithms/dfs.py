@@ -13,7 +13,7 @@ def _dfs_step_allow_traps(state: State, action: Action) -> Optional[State]:
     if state.is_terminal():
         return state
     new_row, new_col = state._update_location(state.player_col, action)
-    if state._collides((new_row, new_col), state.grid):
+    if state._collides((new_row, new_col), state.grid_bitmap):
         return None
     return State(state.time_index + 1, new_col)
 
@@ -21,7 +21,7 @@ def _dfs_step_avoid_traps(state: State, action: Action) -> Optional[State]:
     if state.is_terminal():
         return state
     new_row, new_col = state._update_location(state.player_col, action)
-    if state._collides((new_row, new_col), state.grid):
+    if state._collides((new_row, new_col), state.grid_bitmap):
         return None
     if state.trap_col != -1 and new_col == state.trap_col:
         return None

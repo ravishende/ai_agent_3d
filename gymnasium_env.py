@@ -1,8 +1,8 @@
-
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
 from core import State, Action, GET_START_LOCATION
+from bitmap_utils import array_to_bitmap
 
 
 class ObstacleCourseEnv(gym.Env):
@@ -20,15 +20,24 @@ class ObstacleCourseEnv(gym.Env):
 
     ACTION_TO_IDX = {v: k for k, v in ACTION_MAP.items() if k != 4}  # don't use STAY action
 
-    def __init__(self, game_map: list[np.ndarray]):
+    def __init__(self, game_map: list[int] | list[np.ndarray], num_cols: int | None = None):
         super().__init__()
 
+        # convert game map to list of grid bitmaps if not already done.
+        if isinstance(game_map[0], np.ndarray):
+            game_map = [array_to_bitmap(grid) for grid in game_map]
         self.game_map = game_map
         # INIT_GAME_MAP does not need to be called because it has already been initialized at this point in integrated_policy_iteration.py
+        map_width_msg = "if game_map is a list of bitmaps (ints), map_width must be specified"
+        if isinstance(game_map[0], int):
+            assert num_cols is not None, map_width_msg
+        elif num_cols is None:
+            num_cols = game_map[0].shape[1]
+        assert num_cols > 0, "num_cols (number of columns per grid) must be positive"
 
         self.num_timesteps = len(game_map)
         self.num_rows = 3
-        self.num_cols = game_map[0].shape[1]
+        self.num_cols = num_cols
 
         self.action_space = spaces.Discrete(5)
 
@@ -123,7 +132,7 @@ class ObstacleCourseEnv(gym.Env):
         return {
             'time_index': t,
             'position': col,
-            'grid': state.grid
+            'grid': state.grid_bitmap
         }
 
     def preview_action(self, state_idx: int, action: int) -> tuple[int, int, bool]:
@@ -145,8 +154,8 @@ class ObstacleCourseEnv(gym.Env):
         print(f"\n{'='*50}")
         print(f"Time: {self.state.time_index}")
         print(f"Player Location: {self.state.player_col}")
-        if self.state.grid is not None:
-            print(f"Current Grid:\n{self.state.grid}")
+        if self.state.grid_bitmap is not None:
+            print(f"Current Grid:\n{self.state.grid_bitmap}")
         else:
             print("TERMINAL STATE")
         print(f"{'='*50}\n")

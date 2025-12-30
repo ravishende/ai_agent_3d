@@ -152,9 +152,9 @@ class IntegratedPolicyIteration:
         }
 
 
-def solve_map(game_map, gamma=0.98, verbose=True) -> tuple[list[Action], IntegratedPolicyIteration]:
+def solve_map(game_map, map_width=None, gamma=0.98, verbose=True) -> tuple[list[Action], IntegratedPolicyIteration]:
     # Create environment
-    env = ObstacleCourseEnv(game_map)
+    env = ObstacleCourseEnv(game_map, num_cols=map_width)
 
     # Run policy iteration
     pi = IntegratedPolicyIteration(env, gamma=gamma)
