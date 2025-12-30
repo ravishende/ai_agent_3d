@@ -1,7 +1,7 @@
 from enum import Enum
 import random
 import numpy as np
-from bitmap_utils import bitmap_to_array, array_to_bitmap, obstacle_at
+from bitmap_utils import bitmap_to_array, array_to_bitmap, game_map_arrays_to_bitmaps, obstacle_at
 
 _GAME_MAP: list[int] | None = None
 _START_LOCATION = (1,1) # for 3xN maps, call INIT_START_LOCATION
@@ -48,9 +48,8 @@ def INIT_GAME(
     assert 0 <= trap_death_prob < 1, death_trap_prob_msg
     if isinstance(game_map[0], int):
         assert map_width is not None, map_width_msg
-    elif map_width is None:
+    else:
         map_width = game_map[0].shape[1]
-    assert map_width > 0, "map_width (number of columns per grid) must be positive"
     if trap_cols is None:
         trap_cols = [-1 for _ in range(len(game_map))]
     assert len(game_map) == len(trap_cols), "game_map and trap_cols must be the same length."
@@ -58,7 +57,7 @@ def INIT_GAME(
     global _GAME_MAP, _TRAP_COLS, _TRAP_PROB, _MAP_WIDTH
     # Init _GAME_MAP as a list of bitmaps
     if isinstance(game_map[0], np.ndarray):
-        _GAME_MAP = [array_to_bitmap(grid) for grid in game_map]
+        _GAME_MAP = game_map = game_map_arrays_to_bitmaps(game_map)
     else:
         _GAME_MAP = game_map.copy()
     # Init 
@@ -217,20 +216,14 @@ class State:
         return (new_row, new_col)
 
     def _collides(self, player_location:tuple[int,int], grid_bitmap:int) -> bool:
-        if self._obstacle_at(player_location, grid_bitmap):
+        if obstacle_at(location=player_location, grid_bitmap=grid_bitmap, n_rows=_N_ROWS):
             return True
         row, col = player_location
         mid_row = 1
         bot_row = 2
-        if row == mid_row and self._obstacle_at((bot_row, col), grid_bitmap) == 1:
+        if row == mid_row and obstacle_at((bot_row, col), grid_bitmap, n_rows=_N_ROWS) == 1:
             return True
         return False
-
-    def _obstacle_at(self, location: tuple[int,int], grid_bitmap:int):
-        """
-        Returns True if there is an obstacle (1) in the grid_bitmap at the given location (row,col)
-        """
-        return obstacle_at(location=location, grid_bitmap=grid_bitmap, map_width=_N_ROWS)
 
     def __str__(self):
         prefix_s = "\nLocation: col=%i\nGrid Bitmap: %i\nGrid (t=%i):\n"

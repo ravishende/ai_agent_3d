@@ -1,7 +1,7 @@
 import random
 import numpy as np
 from typing import Iterator, List, Set
-from bitmap_utils import create_funnel_pattern, create_random_grid, obstacle_at
+from bitmap_utils import create_funnel_pattern, create_random_grid, obstacle_at, bitmap_to_array
 
 _BLOCKED_COL = 0b111
 
@@ -20,7 +20,7 @@ class MapGenerator:
         """Checks if you can survive a grid by standing in a given column"""
         stand_rows = (1, 2)
         for row in stand_rows:
-            if obstacle_at(location=(row,col), grid_bitmap=grid_bitmap, map_width=self.COLS):
+            if obstacle_at(location=(row,col), grid_bitmap=grid_bitmap, n_rows=self.ROWS):
                 return False
         return True
 
@@ -32,13 +32,13 @@ class MapGenerator:
         # column_slice is [row0_val, row1_val, row2_val]
         
         # Check Jump (Agent is at Row 0)
-        can_jump = not obstacle_at(location=(0, col), grid_bitmap=grid_bitmap, map_width=self.COLS)
+        can_jump = not obstacle_at(location=(0, col), grid_bitmap=grid_bitmap, n_rows=self.ROWS)
         
         # Check Stand (Agent is at Row 1 and 2)
         can_stand = self.check_standing_survival(grid_bitmap, col)
         
         # Check Duck (Agent is at Row 2)
-        can_duck = not obstacle_at(location=(2, col), grid_bitmap=grid_bitmap, map_width=self.COLS)
+        can_duck = not obstacle_at(location=(2, col), grid_bitmap=grid_bitmap, n_rows=self.ROWS)
         
         return can_jump or can_stand or can_duck
 
@@ -160,13 +160,14 @@ class MapGenerator:
 # --- Example Usage for Testing ---
 def main():
     # Test with a wider map (e.g., 9 lanes)
-    WIDTH_N = 9
-    generator = MapGenerator(n_cols=WIDTH_N)
-    print(f"Testing generate_step with {WIDTH_N} lanes:")
+    width_n = 9
+    generator = MapGenerator(n_cols=width_n)
+    print(f"Testing generate_step with {width_n} lanes:")
     generator.reset()
     for i in range(3):
-        grid, trap_col = generator.generate_step(trap_spawn_prob=0.5, difficulty="expert")
-        print(f"Slice {i}: \ntrap_col: {trap_col} \ngrid: \n{grid}")
+        grid_bitmap, trap_col = generator.generate_step(trap_spawn_prob=0.5, difficulty="expert")
+        grid = bitmap_to_array(grid_bitmap, map_width=width_n)
+        print(f"Slice {i}: \ntrap_col: {trap_col} \ngrid: \n{grid_bitmap}\n{grid}")
 
 if __name__ == "__main__":
     main()

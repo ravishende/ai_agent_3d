@@ -33,7 +33,7 @@ def array_to_bitmap(arr: np.ndarray) -> int:
             bitmap |= int(arr[row,col]) << (col*n_rows + row)
     return bitmap
 
-def bitmap_to_array(grid_bitmap:int, map_width:int, n_rows:int) -> np.ndarray:
+def bitmap_to_array(grid_bitmap:int, map_width:int, n_rows:int = 3) -> np.ndarray:
     """
     Given a grid bitmap and number of columns and rows, return a resulting array.
     """
@@ -44,16 +44,44 @@ def bitmap_to_array(grid_bitmap:int, map_width:int, n_rows:int) -> np.ndarray:
             arr[row, col] = 1 if digit > 0 else 0
     return arr.astype(int)
 
-def obstacle_at(location: tuple[int,int], grid_bitmap:int, map_width:int):
+def game_map_bitmaps_to_arrays(game_map:list[int], map_width:int, n_rows:int = 3) -> list[np.ndarray]:
+    """
+    Convert a game map to be a list of 2D arrays from of a list of bitmaps
+    Parameters:
+        game_map: gamemap as a list of bitmaps
+        map_width: number of columns in a grid of the map
+        num_rows: number of rows in a grid of the map
+    """
+    if not isinstance(game_map[0], int):
+        err = f"elements of game_map expected to be type int but were {type(game_map[0])}"
+        raise TypeError(err)
+    assert map_width > 0, "map_width (number of columns per grid) must be positive"
+    return [bitmap_to_array(grid_bitmap=grid, map_width=map_width, n_rows=n_rows) for grid in game_map]
+
+
+def game_map_arrays_to_bitmaps(game_map:list[np.ndarray]) -> list[int]:
+    """
+    Convert a game map to be a list of bitmaps from of a list of 2D arrays
+    Parameters:
+        game_map: gamemap as a list of numpy 2D arrays
+    """
+    if not isinstance(game_map[0], np.ndarray):
+        err = f"elements of game_map expected to be 2D numpy arrays but were {type(game_map[0])}"
+        raise TypeError(err)
+    return [array_to_bitmap(grid) for grid in game_map]
+
+
+
+def obstacle_at(location: tuple[int,int], grid_bitmap:int, n_rows:int = 3):
     """
     Returns True if there is an obstacle (1) in the grid_bitmap at the given location (row,col)
     Parameters:
         location: (row_index, col_index) of the player
         grid_bitmap: bitmap representation of the specified grid in the game map
-        n_rows: width of the game map (number of rows)
+        n_rows: number of rows in the game map
     """
     row, col = location
-    bit_location = col * map_width + row
+    bit_location = col * n_rows + row
     return (grid_bitmap & (1 << bit_location)) > 0
 
 def create_funnel_pattern(safe_col:int, n_rows:int, map_width:int) -> int:
