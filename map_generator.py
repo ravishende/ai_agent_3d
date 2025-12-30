@@ -3,8 +3,6 @@ import numpy as np
 from typing import Iterator, List, Set
 from bitmap_utils import create_funnel_pattern, create_random_grid, obstacle_at, bitmap_to_array
 
-_BLOCKED_COL = 0b111
-
 class MapGenerator:
     def __init__(self, n_cols:int=7):
         assert n_cols > 0 and isinstance(n_cols, int), "n_cols must be a positive integer"
