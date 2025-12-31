@@ -160,7 +160,8 @@ def _draw_lane_windowed(
     num_rows:int = 3,
     pad_slices:int = 2,  # extra slices behind/ahead to avoid pop-in
     x_near:float = -20.0,
-    x_far:float =200.0
+    x_far:float =200.0,
+    kill_time_column: tuple[int, int] | None = None, # (slice_index, col)
 ):
     """
     Draw only the visible portion of the lane.
@@ -254,6 +255,16 @@ def _draw_lane_windowed(
                 _draw_trap(cube_size)
                 glPopMatrix()
 
+        # kill column (vertical red blocks) if the player died to a trap on this slice
+        if kill_time_column is not None:
+            kill_slice, kill_col = kill_time_column
+            if i == kill_slice:
+                z = kill_col * cube_size
+                glPushMatrix()
+                glTranslatef(x, 0.0, z)
+                _draw_trap_kill_column(cube_size=cube_size, num_rows=num_rows)
+                glPopMatrix()
+
     glPopMatrix()
 
 # ------------------ OpenGL / Pygame setup ------------------
@@ -333,6 +344,51 @@ def _draw_trap(cube_size):
     """
     _draw_square(cube_size, RED)
 
+# ------------------ Death logic ------------------
+
+def _player_occupied_cells(player_pos: tuple[int, int]) -> list[tuple[int, int]]:
+    """Return a list of player positions (row,col) that the player occupies"""
+    row, col = player_pos
+    stand_row = 1
+    bot_row = 2
+    if row == stand_row:
+        # player occupies 2 spaces when standing
+        return [(stand_row, col), (bot_row, col)]
+    # player occupies 1 space when jumping/ducking
+    return [(row, col)]
+
+def _hits_obstacle(slice_grid: np.ndarray, player_pos: tuple[int, int]) -> bool:
+    """True if any occupied player cell is a 1 in this slice."""
+    for row, col in _player_occupied_cells(player_pos):
+        if slice_grid[row, col] == 1:
+            return True
+    return False
+
+
+def _hits_trap(trap_cols: list[int] | None, slice_index: int, player_pos: tuple[int, int]) -> bool:
+    """
+    Trap kills player if they are in same column as trap during the slice the trap is in.
+    """
+    if trap_cols is None:
+        return False
+    trap_col = trap_cols[slice_index]
+    if trap_col == -1:
+        return False
+    _, player_col = player_pos
+    return player_col == trap_col
+
+def _draw_trap_kill_column(cube_size: float, num_rows: int):
+    """
+    Draw a vertical red column (stack of cubes) from floor up through all rows.
+    Caller must already be translated to the correct (x, z) for the column.
+    """
+    for row in range(num_rows):
+        y = (num_rows - 1 - row) * cube_size
+        glPushMatrix()
+        glTranslatef(0.0, y, 0.0)
+        _draw_colored_cube_with_outline(RED, cube_size)
+        glPopMatrix()
+
 # ------------------ Main loop ------------------
 
 def visualize(
@@ -370,6 +426,13 @@ def visualize(
     # how far into a section to change to the newest action
     action_change = 1/2
     action_change_distance = action_change * step
+
+     # death / game over handling
+    death_active = False
+    death_timer = 0.0
+    DEATH_SHOW_SECONDS = 0.9  # how long to pause and show the kill column
+    death_kill_column: tuple[int, int] | None = None  # (slice_index, col)
+
     while running:
         fps = 120
         dt_ms = clock.tick(fps) # ms since last frame
@@ -380,10 +443,19 @@ def visualize(
             if event.type == QUIT:
                 running = False
 
-        # move lane toward camera
-        lane_x_position -= speed * dt
-        if lane_x_position + lane_length < reset_distance:
-            lane_x_position = lane_x_start  # restart from back
+        # If showing a death, freeze motion and count down, then reset.
+        if death_active:
+            death_timer -= dt
+            if death_timer <= 0.0:
+                death_active = False
+                death_kill_column = None
+                lane_x_position = lane_x_start
+            # (We still draw the scene below, with the kill column visible.)
+        else:
+            # move lane toward camera
+            lane_x_position -= speed * dt
+            if lane_x_position + lane_length < reset_distance:
+                lane_x_position = lane_x_start  # restart from back
 
         total_distance_travelled = lane_x_start - lane_x_position
         map_distance_travelled = total_distance_travelled - lane_x_start + spacing
@@ -396,12 +468,7 @@ def visualize(
         # Ideally it'd be between 0 and 1, but only needs to be accurate between 1/4 and action_change
         section_progress = (map_distance_travelled - step*(current_slice+1)) / step
 
-        if len(player_locations) < len(slices):  # player didn't win - lost early
-            if current_slice == len(player_locations) -1 and section_progress >= 0:
-                # player hit an obstacle --> reset
-                lane_x_position = lane_x_start
-                continue
-
+        in_action_phase = False
         if map_distance_travelled < action_change_distance:
             # start the game standing at (cols//2,1) - in the middle of the board
             player_pos = GET_START_LOCATION()
@@ -413,6 +480,22 @@ def visualize(
         else:
             # do the action for the current slice
             player_pos = player_locations[current_slice]
+            in_action_phase = True
+
+        # Only check collisions during action phase for the current slice.
+        death_phase_stop_threshold = -0.075
+        if (not death_active) and in_action_phase and death_phase_stop_threshold <= section_progress:
+            # obstacle collision (if you want last-slice obstacle deaths to show too)
+            if _hits_obstacle(slices[current_slice], player_pos):
+                death_active = True
+                death_timer = DEATH_SHOW_SECONDS
+                death_kill_column = None  # obstacle death: no trap column
+            # trap collision
+            elif _hits_trap(trap_cols, current_slice, player_pos) or _hits_obstacle(slices[current_slice], player_pos):
+                _, player_col = player_pos
+                death_active = True
+                death_timer = DEATH_SHOW_SECONDS
+                death_kill_column = (current_slice, player_col)
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
@@ -448,7 +531,8 @@ def visualize(
             spacing=spacing,
             x_near=-20.0,
             x_far=200.0,
-            pad_slices=2
+            pad_slices=2,
+            kill_time_column=death_kill_column
         )
 
         pygame.display.flip()
