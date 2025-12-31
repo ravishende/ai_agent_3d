@@ -216,6 +216,111 @@ def _draw_lane_from_slices(slices, trap_cols, cube_size=1.0, spacing=1.0, num_ro
 
     glPopMatrix()  # pop lane-centering transform
 
+def _draw_lane_windowed(
+    slices:list[np.ndarray],
+    trap_cols:list[int] | None,
+    lane_x_position_world,  # lane_x_position (the value to translate the full lane by)
+    cube_size:float = 2.0,
+    spacing:float = 40.0,
+    num_rows:int = 3,
+    pad_slices:int = 2,  # extra slices behind/ahead to avoid pop-in
+    x_near:float = -20.0,
+    x_far:float =200.0
+):
+    """
+    Draw only the visible portion of the lane.
+
+    Draw only the slices whose WORLD-X lies in [x_near, x_far] (plus pad_slices).
+    Assumes caller has not already translated by lane_x_position (translattion happens inside),
+
+    Parameters:
+        slices: game map as a list of 2D arrays
+        trap_cols: trap column indices for each slice. -1 means no trap in that slice.
+        lane_x_position_world: world-space X position of slice index 0. 
+            * world_x(i) = lane_x_position_world + i * (cube_size + spacing)
+        cube_size: side length of each cube in world units.
+        spacing: distance between consecutive slices along the X axis.
+        num_rows: number of rows in each slice (Y dimension).
+        pad_slices: number of extra slices to render before/after the visible window to avoid visual popping as slices enter or leave the view.
+        x_near: world-space X coordinate of the near edge of the visible window.
+        x_far: world-space X coordinate of the far edge of the visible window.
+    """
+    if not slices:
+        return
+
+    map_len = len(slices)
+    _, cols = slices[0].shape
+    step = cube_size + spacing
+
+    # Center the lane in Z so the middle column is at z = 0
+    center_z_offset = ((cols - 1) * cube_size) / 2
+
+    # Compute visible slice index range based on world_x(i) = lane_x_position + i*step
+    i_start = int(np.floor((x_near - lane_x_position_world) / step)) - pad_slices
+    i_end   = int(np.ceil ((x_far  - lane_x_position_world) / step)) + pad_slices
+    i_start = max(i_start, 0)
+    i_end   = min(i_end, map_len - 1)
+
+    if i_end < i_start:
+        return
+
+    visible_count = i_end - i_start + 1
+
+    # draw a short floor just for visible slices
+    floor_color = (0.5, 0.5, 0.5)
+    glPushMatrix()
+    # move to lane, then move floor start to i_start
+    glTranslatef(lane_x_position_world + i_start * step, 0.0, 0.0)
+    _draw_floor(
+        map_length=visible_count,
+        map_width=cols,
+        cube_size=cube_size,
+        spacing=spacing,
+        color=floor_color
+    )
+    glPopMatrix()
+
+    # draw only visible slices
+    glPushMatrix()
+    glTranslatef(lane_x_position_world, 0.0, 0.0)      # lane motion
+    glTranslatef(0.0, 0.0, -center_z_offset)           # Z centering
+
+    for i in range(i_start, i_end + 1):
+        x = i * step
+        grid = slices[i]
+
+        # cubes
+        for row in range(num_rows):
+            for col in range(cols):
+                if grid[row, col] == 1:
+                    y = (num_rows - 1 - row) * cube_size
+                    z = col * cube_size
+
+                    if row != num_rows - 1:
+                        glPushMatrix()
+                        glTranslatef(x, 0.0, z)
+                        _draw_shadow(cube_size)
+                        glPopMatrix()
+
+                    glPushMatrix()
+                    glTranslatef(x, y, z)
+                    _draw_colored_cube_with_outline(GREEN, cube_size)
+                    glPopMatrix()
+
+        # traps
+        if trap_cols is not None and trap_cols[i] != -1:
+            z = trap_cols[i] * cube_size
+            trap_display_length = 1
+            if spacing > trap_display_length * cube_size:
+                trap_display_length = 2
+            for k in range(trap_display_length + 1):
+                glPushMatrix()
+                glTranslatef(x - cube_size * k, 0.0, z)
+                _draw_trap(cube_size)
+                glPopMatrix()
+
+    glPopMatrix()
+
 # ------------------ OpenGL / Pygame setup ------------------
 
 def _init_pygame_opengl(width=800, height=600, cube_size=1.0):
@@ -401,11 +506,15 @@ def visualize(
         glPopMatrix()
 
         # ---- Draw lane ----
-        glPushMatrix()
-        # move entire lane along -X (toward camera)
-        glTranslatef(lane_x_position, 0.0, 0.0)
-        _draw_lane_from_slices(slices, trap_cols, cube_size, spacing)
-        glPopMatrix()
+        _draw_lane_windowed(
+            slices, trap_cols,
+            lane_x_position_world=lane_x_position,
+            cube_size=cube_size,
+            spacing=spacing,
+            x_near=-20.0,
+            x_far=200.0,
+            pad_slices=2
+        )
 
         pygame.display.flip()
 
